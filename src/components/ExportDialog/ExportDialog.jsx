@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-pin
 
 function ExportDialog({ isOpen, onClose, onExport }) {
   const [outputPath, setOutputPath] = useState('');
