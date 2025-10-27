@@ -2,7 +2,12 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 
 // Get __dirname in CommonJS
-const __dirname = path.dirname(__filename) || path.resolve(__dirname || process.cwd());
+let __dirname;
+try {
+  __dirname = __dirname || path.dirname(require.main.filename);
+} catch (e) {
+  __dirname = process.cwd();
+}
 
 let mainWindow;
 
