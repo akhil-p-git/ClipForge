@@ -11,8 +11,19 @@ function App() {
 
   const handleExport = async (config) => {
     console.log('Export config:', config);
-    // TODO: Implement actual export
-    alert('Export functionality coming soon!');
+    
+    if (!window.electronAPI) {
+      alert('Export is only available in Electron');
+      return;
+    }
+    
+    try {
+      const result = await window.electronAPI.exportVideo(config);
+      alert(result.message || 'Export completed successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      alert(`Export failed: ${error.message}`);
+    }
   };
 
   return (

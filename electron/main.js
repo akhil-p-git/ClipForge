@@ -13,7 +13,8 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: true,
+      webSecurity: false, // Disable web security to allow file:// protocol
+      allowRunningInsecureContent: true,
     },
     titleBarStyle: 'hiddenInset', // macOS style
   });
@@ -72,4 +73,13 @@ ipcMain.handle('dialog:save', async (event, options) => {
     title: options.title || 'Save File',
   });
   return result;
+});
+
+// Handle export video
+ipcMain.handle('video:export', async (event, config) => {
+  console.log('Export video called with config:', config);
+  // TODO: Implement actual FFmpeg export
+  // For now, just return a success message
+  await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate export time
+  return { success: true, message: 'Export completed (stub - FFmpeg not integrated yet)' };
 });

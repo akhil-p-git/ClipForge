@@ -61,13 +61,26 @@ function VideoPlayer() {
       
       // For Electron, we need to load the file:// path
       if (currentClip.filePath) {
+        // Ensure proper file:// URL format for Electron
+        let videoSrc = currentClip.filePath;
+        if (!videoSrc.startsWith('file://')) {
+          videoSrc = `file://${videoSrc}`;
+        }
+        
+        console.log('Loading video:', videoSrc);
+        
         player.src({
-          src: `file://${currentClip.filePath}`,
+          src: videoSrc,
           type: getVideoType(currentClip.format)
         });
         
         // Preload the video
         player.load();
+        
+        // Log any errors
+        player.on('error', () => {
+          console.error('Video player error:', player.error());
+        });
       }
     }
   }, [currentClip]);

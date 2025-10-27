@@ -10,8 +10,25 @@ function ExportDialog({ isOpen, onClose, onExport }) {
   if (!isOpen) return null;
 
   const handleExport = async () => {
+    if (!outputPath) {
+      // Auto-generate output path if not provided
+      const defaultPath = `${outputPath || 'output'}.mp4`;
+      setOutputPath(defaultPath);
+    }
+    
     setExporting(true);
     setProgress(0);
+    
+    // Simulate progress
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return prev + 5;
+      });
+    }, 100);
     
     try {
       const config = {
@@ -21,11 +38,15 @@ function ExportDialog({ isOpen, onClose, onExport }) {
       };
       
       await onExport(config);
+      clearInterval(progressInterval);
       setExporting(false);
+      setProgress(0);
       onClose();
     } catch (error) {
+      clearInterval(progressInterval);
       console.error('Export error:', error);
       setExporting(false);
+      setProgress(0);
       alert(`Export failed: ${error.message}`);
     }
   };
