@@ -16,15 +16,20 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      webSecurity: true,
     },
     titleBarStyle: 'hiddenInset', // macOS style
   });
 
-  // Load Vite dev server in development
-  if (process.env.NODE_ENV === 'development') {
+  // Always try to load from dev server first, fallback to production build
+  const isDev = !app.isPackaged;
+  
+  if (isDev) {
+    console.log('Loading from Vite dev server: http://localhost:5173');
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
+    console.log('Loading from production build');
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 

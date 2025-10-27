@@ -1,9 +1,11 @@
 import React from 'react';
 import MediaLibrary from './components/MediaLibrary/MediaLibrary';
 import VideoPlayer from './components/VideoPlayer/VideoPlayer';
+import Timeline from './components/Timeline/Timeline';
 import './App.css';
 
 function App() {
+  console.log('App component rendering...');
   return (
     <div className="h-screen flex flex-col bg-gray-900">
       {/* Menu Bar */}
@@ -26,15 +28,8 @@ function App() {
           </div>
 
           {/* Timeline - Bottom Panel */}
-          <div className="h-48 bg-gray-800 border-t border-gray-700 p-4">
-            <h2 className="text-sm font-semibold mb-2 uppercase tracking-wide text-gray-400">
-              Timeline
-            </h2>
-            <div className="flex items-center h-32 bg-gray-700/30 rounded p-2">
-              <div className="text-gray-500 text-sm">
-                Drag clips from media library to start editing
-              </div>
-            </div>
+          <div className="h-64 bg-gray-800 border-t border-gray-700">
+            <Timeline />
           </div>
         </div>
       </div>
