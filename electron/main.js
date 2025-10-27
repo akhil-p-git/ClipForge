@@ -1,10 +1,8 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs/promises';
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const path = require('path');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Get __dirname in CommonJS
+const __dirname = path.dirname(__filename) || path.resolve(__dirname || process.cwd());
 
 let mainWindow;
 
@@ -59,10 +57,12 @@ console.log('Electron main process started');
 
 // Handle file open dialog
 ipcMain.handle('dialog:open', async (event, options) => {
+  console.log('Dialog open requested');
   const result = await dialog.showOpenDialog(mainWindow, {
     ...options,
     title: options.title || 'Select Files',
   });
+  console.log('Dialog result:', result);
   return result;
 });
 
@@ -74,4 +74,3 @@ ipcMain.handle('dialog:save', async (event, options) => {
   });
   return result;
 });
-
