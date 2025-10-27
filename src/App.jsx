@@ -1,17 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MediaLibrary from './components/MediaLibrary/MediaLibrary';
 import VideoPlayer from './components/VideoPlayer/VideoPlayer';
 import Timeline from './components/Timeline/Timeline';
+import ExportDialog from './components/ExportDialog/ExportDialog';
 import './App.css';
 
 function App() {
   console.log('App component rendering...');
+  const [showExportDialog, setShowExportDialog] = useState(false);
+
+  const handleExport = async (config) => {
+    console.log('Export config:', config);
+    // TODO: Implement actual export
+    alert('Export functionality coming soon!');
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-900">
       {/* Menu Bar */}
-      <div className="h-12 bg-gray-800 text-white flex items-center px-4 border-b border-gray-700">
+      <div className="h-12 bg-gray-800 text-white flex items-center justify-between px-4 border-b border-gray-700">
         <h1 className="text-lg font-semibold">ClipForge</h1>
+        <button
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors"
+          onClick={() => setShowExportDialog(true)}
+        >
+          Export
+        </button>
       </div>
+
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        onExport={handleExport}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
