@@ -6,6 +6,7 @@ import './VideoPlayer.css';
 import { useStore } from '../../store/useStore';
 
 function VideoPlayer() {
+  console.log('VideoPlayer rendering, currentClip:', useStore.getState().currentClip);
   const videoRef = useRef(null);
   const playerRef = useRef(null);
   const { currentClip, playhead, setPlayhead, isPlaying, setIsPlaying } = useStore();

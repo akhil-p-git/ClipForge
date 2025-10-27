@@ -23,11 +23,17 @@ function MediaItem({ clip, onClick }) {
     return `${mb} MB`;
   };
 
+  const handleClick = (e) => {
+    console.log('MediaItem clicked, calling onClick handler');
+    e.stopPropagation(); // Prevent drag event from triggering
+    onClick();
+  };
+
   return (
     <div 
       ref={drag}
-      className={`media-item ${isDragging ? 'dragging' : ''}`}
-      onClick={onClick}
+      className={`media-item ${isDragging ?observed 'dragging' : ''}`}
+      onClick={handleClick}
       style={{ opacity: isDragging ? 0.5 : 1 }}
     >
       <div className="media-item-thumbnail">
