@@ -32,7 +32,7 @@ function MediaItem({ clip, onClick }) {
   return (
     <div 
       ref={drag}
-      className={`media-item ${isDragging ?observed 'dragging' : ''}`}
+      className={`media-item ${isDragging ? 'dragging' : ''}`}
       onClick={handleClick}
       style={{ opacity: isDragging ? 0.5 : 1 }}
     >
