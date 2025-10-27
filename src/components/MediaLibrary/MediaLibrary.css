@@ -85,10 +85,21 @@
   background: #374151;
   border-radius: 8px;
   padding: 12px;
-  cursor: pointer;
+  cursor: move;
+  cursor: grab;
   transition: all 0.2s;
   display: flex;
   gap: 12px;
+  user-select: none;
+}
+
+.media-item:active {
+  cursor: grabbing;
+}
+
+.media-item.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
 }
 
 .media-item:hover {

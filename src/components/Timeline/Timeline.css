@@ -156,6 +156,23 @@
   align-items: center;
   padding: 8px;
   gap: 8px;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 49px,
+    #2d3748 49px,
+    #2d3748 50px
+  );
+}
+
+.track-content:hover {
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 49px,
+    #374151 49px,
+    #374151 50px
+  );
 }
 
 .empty-track {
@@ -179,6 +196,12 @@
   align-items: center;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.2s;
+  position: relative;
+  border: 2px solid #3b82f6;
+}
+
+.clip-block:hover {
+  border-color: #2563eb;
 }
 
 .clip-block:hover {
