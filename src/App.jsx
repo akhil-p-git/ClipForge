@@ -1,4 +1,5 @@
 import React from 'react';
+import MediaLibrary from './components/MediaLibrary/MediaLibrary';
 import './App.css';
 
 function App() {
@@ -12,16 +13,8 @@ function App() {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Media Library - Left Panel */}
-        <div className="w-80 bg-gray-800 border-r border-gray-700 p-4 text-white">
-          <h2 className="text-sm font-semibold mb-4 uppercase tracking-wide text-gray-400">
-            Media Library
-          </h2>
-          <div className="bg-gray-700/50 rounded-lg p-4 mb-4 hover:bg-gray-700 cursor-pointer transition-colors">
-            <p className="text-sm text-gray-300">+ Import Video</p>
-          </div>
-          <div className="bg-gray-700/50 rounded-lg p-4 hover:bg-gray-700 cursor-pointer transition-colors">
-            <p className="text-sm text-gray-300">🎥 Record Screen</p>
-          </div>
+        <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
+          <MediaLibrary />
         </div>
 
         {/* Center Content */}

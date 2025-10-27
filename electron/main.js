@@ -1,6 +1,7 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs/promises';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -48,6 +49,24 @@ app.on('window-all-closed', () => {
   }
 });
 
-// IPC handlers will be added here
+// IPC handlers
 console.log('Electron main process started');
+
+// Handle file open dialog
+ipcMain.handle('dialog:open', async (event, options) => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    ...options,
+    title: options.title || 'Select Files',
+  });
+  return result;
+});
+
+// Handle file save dialog
+ipcMain.handle('dialog:save', async (event, options) => {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    ...options,
+    title: options.title || 'Save File',
+  });
+  return result;
+});
 
