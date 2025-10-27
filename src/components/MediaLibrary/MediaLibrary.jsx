@@ -141,7 +141,9 @@ function MediaLibrary() {
 
   const handleClipClick = (clip) => {
     console.log('Clip clicked:', clip);
+    console.log('Setting current clip to:', clip.id);
     setCurrentClip(clip);
+    console.log('Current clip set');
   };
 
   return (

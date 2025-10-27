@@ -13,24 +13,36 @@ function VideoPlayer() {
   useEffect(() => {
     // Initialize Video.js player
     if (videoRef.current && !playerRef.current) {
+      console.log('Initializing Video.js player');
       playerRef.current = videojs(videoRef.current, {
         controls: true,
         fluid: true,
         responsive: true,
         preload: 'auto',
         playbackRates: [0.5, 1, 1.5, 2],
-        plugins: {
-          // Add any plugins here if needed
-        }
+        html5: {
+          nativeAudioTracks: false,
+          nativeVideoTracks: false,
+        },
       });
 
+      console.log('Video.js player initialized');
       // Setup player event listeners
       const player = playerRef.current;
 
       // Sync play state with store
-      player.on('play', () => setIsPlaying(true));
-      player.on('pause', () => setIsPlaying(false));
-      player.on('ended', () => setIsPlaying(false));
+      player.on('play', () => {
+        console.log('Video playing');
+        setIsPlaying(true);
+      });
+      player.on('pause', () => {
+        console.log('Video paused');
+        setIsPlaying(false);
+      });
+      player.on('ended', () => {
+        console.log('Video ended');
+        setIsPlaying(false);
+      });
 
       // Update playhead as video plays
       player.on('timeupdate', () => {
@@ -48,6 +60,7 @@ function VideoPlayer() {
     // Cleanup
     return () => {
       if (playerRef.current) {
+        console.log('Disposing Video.js player');
         playerRef.current.dispose();
         playerRef.current = null;
       }
