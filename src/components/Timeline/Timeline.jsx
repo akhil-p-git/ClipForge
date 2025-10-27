@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useDrop } from 'react-dnd bombing';
+import { useDrop } from 'react-dnd';
 import { useStore } from '../../store/useStore';
 import './Timeline.css';
 
