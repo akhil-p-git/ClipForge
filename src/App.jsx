@@ -1,5 +1,6 @@
 import React from 'react';
 import MediaLibrary from './components/MediaLibrary/MediaLibrary';
+import VideoPlayer from './components/VideoPlayer/VideoPlayer';
 import './App.css';
 
 function App() {
@@ -20,11 +21,8 @@ function App() {
         {/* Center Content */}
         <div className="flex-1 flex flex-col">
           {/* Video Preview */}
-          <div className="flex-1 bg-black flex items-center justify-center">
-            <div className="text-gray-500 text-center">
-              <p className="text-lg mb-2">Video Preview</p>
-              <p className="text-sm">Import or record video to get started</p>
-            </div>
+          <div className="flex-1 bg-black">
+            <VideoPlayer />
           </div>
 
           {/* Timeline - Bottom Panel */}
