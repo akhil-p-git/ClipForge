@@ -67,19 +67,41 @@ function VideoPlayer() {
           videoSrc = `file://${videoSrc}`;
         }
         
-        console.log('Loading video:', videoSrc);
+        console.log('Setting video source:', videoSrc);
+        console.log('Clip format:', currentClip.format);
         
+        // Set source
         player.src({
           src: videoSrc,
           type: getVideoType(currentClip.format)
         });
         
-        // Preload the video
-        player.load();
+        // Event listeners
+        player.on('loadstart', () => {
+          console.log('Video: loadstart');
+        });
         
-        // Log any errors
+        player.on('loadedmetadata', () => {
+          console.log('Video: loadedmetadata', player.duration());
+        });
+        
+        player.on('loadeddata', () => {
+          console.log('Video: loadeddata');
+        });
+        
+        player.on('canplay', () => {
+          console.log('Video: canplay - ready to play');
+        });
+        
         player.on('error', () => {
           console.error('Video player error:', player.error());
+          console.error('Error code:', player.error().code);
+          console.error('Error message:', player.error().message);
+        });
+        
+        // Load the video
+        player.load().catch(err => {
+          console.error('Load error:', err);
         });
       }
     }
