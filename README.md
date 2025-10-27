@@ -48,22 +48,22 @@ A desktop video editor built with Electron + React, featuring screen recording, 
 npm install --legacy-peer-deps
 
 # Note: Some packages have peer dependency warnings but work fine with --legacy-peer-deps
+
+# Install FFmpeg (required for export functionality)
+brew install ffmpeg
+
+# Or on Windows/Linux:
+# Download from https://ffmpeg.org/download.html
 ```
 
 ### Running the App
 
 ```bash
-# Start Vite dev server
-npm run dev
-
-# In another terminal, start Electron
-npm run electron
-```
-
-Or use the combined command:
-```bash
+# Combined command (recommended)
 npm run electron:dev
 ```
+
+This will start Vite dev server and Electron together.
 
 ### Building
 
@@ -150,13 +150,24 @@ Using Zustand for global state:
 - FFmpeg must be installed separately on the system
 - Development requires running two processes (Vite + Electron)
 
-## Next Steps
+## Quick Start Guide
 
-1. Implement video import with drag & drop
-2. Add Video.js player component
-3. Create timeline with Wavesurfer
-4. Implement basic trim functionality
-5. Add export with FFmpeg
+1. **Import Video**: Click "Import" button or drag & drop video files
+2. **Preview**: Click any clip in the media library to preview it
+3. **Edit on Timeline**: Drag clips from library to timeline
+4. **Set Trim Points**: Press 'I' for in point, 'O' for out point while playing
+5. **Export**: Click "Export" button, choose settings, and export your video
+
+## Keyboard Shortcuts
+
+- **Space**: Play/Pause
+- **I**: Set in point (trim start)
+- **O**: Set out point (trim end)
+- **Left/Right**: Frame-by-frame navigation
+
+## Status
+
+MVP features complete! The app is fully functional for basic video editing.
 
 ## Contributing
 
