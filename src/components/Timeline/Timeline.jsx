@@ -1,15 +1,45 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import './Timeline.css';
 
 function Timeline() {
-  const { timelineClips, playhead, isPlaying } = useStore();
+  const { timelineClips, playhead, isPlaying, setInPoint, setOutPoint, inPoint, outPoint, setIsPlaying, setPlayhead } = useStore();
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // Keyboard shortcuts for trim points and playback
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Don't trigger if user is typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Trim point shortcuts
+      if (e.key === 'i' || e.key === 'I') {
+        console.log('Set In Point at:', playhead);
+        setInPoint(playhead);
+        e.preventDefault();
+      } else if (e.key === 'o' || e.key === 'O') {
+        console.log('Set Out Point at:', playhead);
+        setOutPoint(playhead);
+        e.preventDefault();
+      }
+      
+      // Playback shortcuts
+      else if (e.key === ' ') {
+        setIsPlaying(!isPlaying);
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [playhead, setInPoint, setOutPoint, isPlaying, setIsPlaying]);
 
   return (
     <div className="timeline-container">
@@ -42,6 +72,32 @@ function Timeline() {
             <span className="playhead-time">{formatTime(playhead)}</span>
           </div>
         </div>
+
+        {/* Trim Points */}
+        {inPoint !== null && (
+          <div className="trim-marker in-point" style={{ left: `${(inPoint / 60) * 100}%` }}>
+            <div className="trim-marker-line"></div>
+            <div className="trim-marker-label">In: {formatTime(inPoint)}</div>
+          </div>
+        )}
+        
+        {outPoint !== null && (
+          <div className="trim-marker out-point" style={{ left: `${(outPoint / 60) * 100}%` }}>
+            <div className="trim-marker-line"></div>
+            <div className="trim-marker-label">Out: {formatTime(outPoint)}</div>
+          </div>
+        )}
+        
+        {/* Trim region highlight */}
+        {inPoint !== null && outPoint !== null && outPoint > inPoint && (
+          <div 
+            className="trim-region" 
+            style={{ 
+              left: `${(inPoint / 60) * 100}%`,
+              width: `${((outPoint - inPoint) / 60) * 100}%`
+            }}
+          />
+        )}
 
         {/* Tracks */}
         <div className="timeline-tracks">
@@ -84,12 +140,15 @@ function Timeline() {
 
         {/* Playback Controls */}
         <div className="playback-controls">
-          <button className="play-button" title="Play/Pause">
+          <button className="play-button" title="Play/Pause" onClick={() => setIsPlaying(!isPlaying)}>
             {isPlaying ? '⏸' : '▶'}
           </button>
-          <button className="control-button" title="Stop">⏹</button>
+          <button className="control-button" title="Stop" onClick={() => { setIsPlaying(false); setPlayhead(0); }}>⏹</button>
           <div className="time-display">
             {formatTime(playhead)} / --:--
+          </div>
+          <div className="trim-shortcuts">
+            <span className="shortcut-hint">Press <kbd>I</kbd> for In, <kbd>O</kbd> for Out</span>
           </div>
         </div>
       </div>
@@ -98,4 +157,3 @@ function Timeline() {
 }
 
 export default Timeline;
-

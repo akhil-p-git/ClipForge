@@ -12,6 +12,10 @@ export const useStore = create((set) => ({
   isPlaying: false,
   currentClip: null,
   
+  // Trim state
+  inPoint: null,
+  outPoint: null,
+  
   // Actions
   addClip: (clip) => set((state) => ({ 
     clips: [...state.clips, clip] 
@@ -46,5 +50,9 @@ export const useStore = create((set) => ({
       clip.id === clipId ? { ...clip, ...updates } : clip
     )
   })),
+  
+  setInPoint: (time) => set({ inPoint: time }),
+  setOutPoint: (time) => set({ outPoint: time }),
+  clearTrimPoints: () => set({ inPoint: null, outPoint: null }),
 }));
 
