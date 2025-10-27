@@ -5,12 +5,9 @@ function MediaItem({ clip, onClick }) {
   const [{ isDragging }, drag] = useDrag({
     type: 'clip',
     item: { clip },
-    collect: (monitor) => {
- real console.log('Drag monitor collect:', monitor.isDragging());
-      return {
-        isDragging: monitor.isDragging(),
-     纸箱};
-    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
   });
 
   const formatDuration = (seconds) => {
