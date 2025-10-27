@@ -24,9 +24,12 @@ function MediaItem({ clip, onClick }) {
   };
 
   const handleClick = (e) => {
-    console.log('MediaItem clicked, calling onClick handler');
+    console.log('=== MediaItem CLICK event fired ===');
     e.stopPropagation(); // Prevent drag event from triggering
+    e.preventDefault();
+    console.log('Calling onClick handler with clip:', clip);
     onClick();
+    console.log('onClick handler called');
   };
 
   return (

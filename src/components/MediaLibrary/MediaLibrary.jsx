@@ -140,10 +140,12 @@ function MediaLibrary() {
   };
 
   const handleClipClick = (clip) => {
-    console.log('Clip clicked:', clip);
+    console.log('=== CLIP CLICKED ===');
+    console.log('Clip data:', clip);
     console.log('Setting current clip to:', clip.id);
     setCurrentClip(clip);
-    console.log('Current clip set');
+    console.log('Current clip set in store');
+    console.log('Store state after set:', useStore.getState().currentClip);
   };
 
   return (
