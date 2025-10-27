@@ -56,6 +56,32 @@ app.on('window-all-closed', () => {
 // IPC handlers
 console.log('Electron main process started');
 
+// Handle video metadata extraction
+ipcMain.handle('video:getMetadata', async (event, filePath) => {
+  return new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(filePath, (err, metadata) => {
+      if (err) {
+        console.error('Error probing video:', err);
+        reject(err);
+      } else {
+        const videoStream = metadata.streams.find(s => s.codec_type === 'video');
+        const audioStream = metadata.streams.find(s => s.codec_type === 'audio');
+        
+        const result = {
+          duration: metadata.format.duration || 0,
+          resolution: videoStream ? `${videoStream.width}x${videoStream.height}` : 'Unknown',
+          fileSize: metadata.format.size || 0,
+          format: metadata.format.format_name || 'unknown',
+          hasAudio: !!audioStream,
+        };
+        
+        console.log('Video metadata:', result);
+        resolve(result);
+      }
+    });
+  });
+});
+
 // Handle file open dialog
 ipcMain.handle('dialog:open', async (event, options) => {
   console.log('Dialog open requested');

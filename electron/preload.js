@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Video operations
   importVideo: (filePath) => ipcRenderer.invoke('video:import', filePath),
   exportVideo: (config) => ipcRenderer.invoke('video:export', config),
+  getVideoMetadata: (filePath) => ipcRenderer.invoke('video:getMetadata', filePath),
   
   // File dialogs
   showOpenDialog: (options) => ipcRenderer.invoke('dialog:open', options),

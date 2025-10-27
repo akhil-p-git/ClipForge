@@ -30,22 +30,41 @@ function MediaLibrary() {
 
       if (!result.canceled && result.filePaths) {
         for (const filePath of result.filePaths) {
-          // For now, create a basic clip object
-          // In the future, we'll use FFmpeg to get metadata
-          const clip = {
-            id: `clip-${Date.now()}-${Math.random()}`,
-            filePath: filePath,
-            fileName: filePath.split('/').pop() || filePath.split('\\').pop(),
-            duration: 0,
-            resolution: 'Unknown',
-            fileSize: 0,
-            format: filePath.split('.').pop(),
-            hasAudio: true,
-            createdAt: new Date(),
-          };
-          
-          console.log('Adding clip:', clip);
-          addClip(clip);
+          try {
+            // Get video metadata using FFmpeg
+            console.log('Getting metadata for:', filePath);
+            const metadata = await window.electronAPI.getVideoMetadata(filePath);
+            
+            const clip = {
+              id: `clip-${Date.now()}-${Math.random()}`,
+              filePath: filePath,
+              fileName: filePath.split('/').pop() || filePath.split('\\').pop(),
+              duration: metadata.duration,
+              resolution: metadata.resolution,
+              fileSize: metadata.fileSize,
+              format: filePath.split('.').pop(),
+              hasAudio: metadata.hasAudio,
+              createdAt: new Date(),
+            };
+            
+            console.log('Adding clip with metadata:', clip);
+            addClip(clip);
+          } catch (error) {
+            console.error('Failed to get metadata, using fallback:', error);
+            // Fallback with basic info if FFmpeg fails
+            const clip = {
+              id: `clip-${Date.now()}-${Math.random()}`,
+              filePath: filePath,
+              fileName: filePath.split('/').pop() || filePath.split('\\').pop(),
+              duration: 0,
+              resolution: 'Unknown',
+              fileSize: 0,
+              format: filePath.split('.').pop(),
+              hasAudio: true,
+              createdAt: new Date(),
+            };
+            addClip(clip);
+          }
         }
       }
     } catch (error) {
@@ -77,20 +96,45 @@ function MediaLibrary() {
                      /\.(mp4|mov|webm|avi|mkv)$/i.test(file.name);
       
       if (isVideo) {
-        const clip = {
-          id: `clip-${Date.now()}-${Math.random()}`,
-          filePath: file.path || file.name,
-          fileName: file.name,
-          duration: 0,
-          resolution: 'Unknown',
-          fileSize: file.size,
-          format: file.name.split('.').pop(),
-          hasAudio: true,
-          createdAt: new Date(),
-        };
-        
-        console.log('Adding dropped clip:', clip);
-        addClip(clip);
+        try {
+          const filePath = file.path || file.name;
+          console.log('Getting metadata for dropped file:', filePath);
+          if (window.electronAPI) {
+            const metadata = await window.electronAPI.getVideoMetadata(filePath);
+            
+            const clip = {
+              id: `clip-${Date.now()}-${Math.random()}`,
+              filePath: filePath,
+              fileName: file.name,
+              duration: metadata.duration,
+              resolution: metadata.resolution,
+              fileSize: metadata.fileSize,
+              format: file.name.split('.').pop(),
+              hasAudio: metadata.hasAudio,
+              createdAt: new Date(),
+            };
+            
+            console.log('Adding dropped clip with metadata:', clip);
+            addClip(clip);
+          } else {
+            throw new Error('Electron API not available');
+          }
+        } catch (error) {
+          console.error('Failed to get metadata for dropped file:', error);
+          // Fallback
+          const clip = {
+            id: `clip-${Date.now()}-${Math.random()}`,
+            filePath: file.path || file.name,
+            fileName: file.name,
+            duration: 0,
+            resolution: 'Unknown',
+            fileSize: file.size,
+            format: file.name.split('.').pop(),
+            hasAudio: true,
+            createdAt: new Date(),
+          };
+          addClip(clip);
+        }
       }
     }
   };
