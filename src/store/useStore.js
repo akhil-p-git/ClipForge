@@ -40,5 +40,11 @@ export const useStore = create((set) => ({
   removeTimelineClip: (timelineClipId) => set((state) => ({
     timelineClips: state.timelineClips.filter(clip => clip.id !== timelineClipId)
   })),
+  
+  updateTimelineClip: (clipId, updates) => set((state) => ({
+    timelineClips: state.timelineClips.map(clip => 
+      clip.id === clipId ? { ...clip, ...updates } : clip
+    )
+  })),
 }));
 

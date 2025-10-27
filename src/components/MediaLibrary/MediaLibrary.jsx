@@ -8,7 +8,16 @@ function MediaLibrary() {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleImportClick = async () => {
+    console.log('Import button clicked');
+    
+    if (!window.electronAPI) {
+      console.error('Electron API not available');
+      alert('Import is only available in Electron. Running in dev mode.');
+      return;
+    }
+    
     try {
+      console.log('Calling electronAPI.showOpenDialog...');
       const result = await window.electronAPI.showOpenDialog({
         properties: ['openFile', 'multiSelections'],
         filters: [
@@ -16,6 +25,8 @@ function MediaLibrary() {
           { name: 'All Files', extensions: ['*'] }
         ]
       });
+
+      console.log('Dialog result:', result);
 
       if (!result.canceled && result.filePaths) {
         for (const filePath of result.filePaths) {
@@ -33,11 +44,13 @@ function MediaLibrary() {
             createdAt: new Date(),
           };
           
+          console.log('Adding clip:', clip);
           addClip(clip);
         }
       }
     } catch (error) {
       console.error('Import error:', error);
+      alert(`Error importing video: ${error.message}`);
     }
   };
 
@@ -56,6 +69,7 @@ function MediaLibrary() {
     setIsDragging(false);
     
     const files = Array.from(e.dataTransfer.files);
+    console.log('Dropped files:', files);
     
     for (const file of files) {
       // Check if it's a video file
@@ -65,7 +79,7 @@ function MediaLibrary() {
       if (isVideo) {
         const clip = {
           id: `clip-${Date.now()}-${Math.random()}`,
-          filePath: file.path,
+          filePath: file.path || file.name,
           fileName: file.name,
           duration: 0,
           resolution: 'Unknown',
@@ -75,12 +89,14 @@ function MediaLibrary() {
           createdAt: new Date(),
         };
         
+        console.log('Adding dropped clip:', clip);
         addClip(clip);
       }
     }
   };
 
   const handleClipClick = (clip) => {
+    console.log('Clip clicked:', clip);
     setCurrentClip(clip);
   };
 
@@ -137,4 +153,3 @@ function MediaLibrary() {
 }
 
 export default MediaLibrary;
-
