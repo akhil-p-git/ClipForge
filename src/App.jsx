@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import MediaLibrary from './components/MediaLibrary/MediaLibrary';
 import VideoPlayer from './components/VideoPlayer/VideoPlayer';
 import Timeline from './components/Timeline/Timeline';
@@ -27,7 +29,8 @@ function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-900">
+    <DndProvider backend={HTML5Backend}>
+      <div className="h-screen flex flex-col bg-gray-900">
       {/* Menu Bar */}
       <div className="h-12 bg-gray-800 text-white flex items-center justify-between px-4 border-b border-gray-700">
         <h1 className="text-lg font-semibold">ClipForge</h1>
@@ -71,6 +74,7 @@ function App() {
         Ready
       </div>
     </div>
+    </DndProvider>
   );
 }
 

@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const ffmpeg = require('fluent-ffmpeg');
 
 // In CommonJS, __dirname is already available automatically
 
@@ -78,8 +79,54 @@ ipcMain.handle('dialog:save', async (event, options) => {
 // Handle export video
 ipcMain.handle('video:export', async (event, config) => {
   console.log('Export video called with config:', config);
-  // TODO: Implement actual FFmpeg export
-  // For now, just return a success message
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate export time
-  return { success: true, message: 'Export completed (stub - FFmpeg not integrated yet)' };
+  
+  return new Promise((resolve, reject) => {
+    // Check if FFmpeg is available
+    ffmpeg.getAvailableEncoders((err, encoders) => {
+      if (err) {
+        console.error('FFmpeg not available:', err);
+        resolve({ 
+          success: false, 
+          message: 'FFmpeg not found. Please install FFmpeg: brew install ffmpeg' 
+        });
+        return;
+      }
+      
+      // For MVP: simple copy/export (will be enhanced)
+      const inputPath = config.inputPath || '/path/to/input.mp4';
+      const outputPath = config.outputPath || './output.mp4';
+      
+      console.log('Starting export from', inputPath, 'to', outputPath);
+      
+      const command = ffmpeg(inputPath)
+        .on('start', (cmdline) => {
+          console.log('FFmpeg started:', cmdline);
+        })
+        .on('progress', (progress) => {
+          // Send progress updates to renderer
+          event.sender.send('export:progress', progress.percent || 0);
+        })
+        .on('end', () => {
+          console.log('Export finished');
+          resolve({ success: true, message: 'Export completed successfully!', outputPath });
+        })
+        .on('error', (err) => {
+          console.error('Export error:', err);
+          reject(new Error(`Export failed: ${err.message}`));
+        });
+      
+      // Apply settings based on config
+      if (config.resolution !== 'source') {
+        if (config.resolution === '1080p') {
+          command.size('1920x1080');
+        } else if (config.resolution === '720p') {
+          command.size('1280x720');
+        } else if (config.resolution === '480p') {
+          command.size('640x480');
+        }
+      }
+      
+      command.save(outputPath);
+    });
+  });
 });

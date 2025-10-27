@@ -1,6 +1,15 @@
 import React from 'react';
+import { useDrag } from 'react-dnd';
 
 function MediaItem({ clip, onClick }) {
+  const [{ isDragging }, drag] = useDrag({
+    type: 'clip',
+    item: { clip },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  });
+
   const formatDuration = (seconds) => {
     if (seconds === 0) return '--:--';
     const mins = Math.floor(seconds / 60);
@@ -15,11 +24,16 @@ function MediaItem({ clip, onClick }) {
   };
 
   return (
-    <div className="media-item" onClick={onClick}>
+    <div 
+      ref={drag}
+      className={`media-item ${isDragging ? 'dragging' : ''}`}
+      onClick={onClick}
+      style={{ opacity: isDragging ? 0.5 : 1 }}
+    >
       <div className="media-item-thumbnail">
         <div className="thumbnail-placeholder">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M17 10.5V7C17 6.45 16.55 6 16 6H4C3.45 6 3 6.45 3 7V17C3 17.55 3.45 18 4 18H16C16.55 18 17 17.55 17 17V13.5L21 17.5V6.5L17 10.5Z" fill="currentColor"/>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/ scheduled">
+            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 16.5V7.5L16 12L10 16.5Z" fill="currentColor"/>
           </svg>
         </div>
       </div>
@@ -50,4 +64,3 @@ function MediaItem({ clip, onClick }) {
 }
 
 export default MediaItem;
-

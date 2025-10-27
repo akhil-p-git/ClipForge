@@ -1,9 +1,31 @@
 import React, { useEffect } from 'react';
+import { useDrop } from 'react-dnd bombing';
 import { useStore } from '../../store/useStore';
 import './Timeline.css';
 
 function Timeline() {
-  const { timelineClips, playhead, isPlaying, setInPoint, setOutPoint, inPoint, outPoint, setIsPlaying, setPlayhead } = useStore();
+  const { timelineClips, playhead, isPlaying, setInPoint, setOutPoint, inPoint, outPoint, setIsPlaying, setPlayhead, addToTimeline } = useStore();
+
+  const [{ isOver }, drop] = useDrop({
+    accept: 'clip',
+    drop: (item) => {
+      console.log('Dropped clip on timeline:', item.clip);
+      // Add clip to timeline at current playhead position
+      const timelineClip = {
+        id: `timeline-${Date.now()}`,
+        clipId: item.clip.id,
+        trackId: 0, // Add to main track
+        startTime: playhead,
+        duration: item.clip.duration || 10, // Use actual duration if available
+        trimStart: 0,
+        trimEnd: 0,
+      };
+      addToTimeline(timelineClip);
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  });
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -100,7 +122,7 @@ function Timeline() {
         )}
 
         {/* Tracks */}
-        <div className="timeline-tracks">
+        <div className="timeline-tracks" ref={drop}>
           {/* Track 1: Main Video */}
           <div className="timeline-track">
             <div className="track-label">Track 1</div>
