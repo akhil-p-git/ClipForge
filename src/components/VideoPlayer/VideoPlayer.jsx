@@ -84,8 +84,13 @@ function VideoPlayer() {
 
   // Load video source when currentClip changes
   useEffect(() => {
+    console.log('=== Load video source useEffect ===');
+    console.log('playerRef.current:', !!playerRef.current);
+    console.log('currentClip:', currentClip);
+    
     if (playerRef.current && currentClip) {
       const player = playerRef.current;
+      console.log('Player and clip available, loading video');
       
       // For Electron, we need to load the file:// path
       if (currentClip.filePath) {
@@ -99,38 +104,39 @@ function VideoPlayer() {
         console.log('Clip format:', currentClip.format);
         
         // Set source
-        player.src({
-          src: videoSrc,
-          type: getVideoType(currentClip.format)
-        });
-        
-        // Event listeners
-        player.on('loadstart', () => {
-          console.log('Video: loadstart');
-        });
-        
-        player.on('loadedmetadata', () => {
-          console.log('Video: loadedmetadata', player.duration());
-        });
-        
-        player.on('loadeddata', () => {
-          console.log('Video: loadeddata');
-        });
-        
-        player.on('canplay', () => {
-          console.log('Video: canplay - ready to play');
-        });
-        
-        player.on('error', () => {
-          console.error('Video player error:', player.error());
-          console.error('Error code:', player.error().code);
-          console.error('Error message:', player.error().message);
-        });
-        
-        // Load the video
-        player.load().catch(err => {
-          console.error('Load error:', err);
-        });
+        try {
+          player.src({
+            src: videoSrc,
+            type: getVideoType(currentClip.format)
+          });
+          
+          // Event listeners
+          player.on('loadstart', () => {
+            console.log('Video: loadstart');
+          });
+          
+          player.on('loadedmetadata', () => {
+            console.log('Video: loadedmetadata', player.duration());
+          });
+          
+          player.on('loadeddata', () => {
+            console.log('Video: loadeddata');
+          });
+          
+          player.on('canplay', () => {
+            console.log('Video: canplay - ready to play');
+          });
+          
+          player.on('error', () => {
+            console.error('Video player error:', player.error());
+          });
+          
+          // Load the video
+          player.load();
+          console.log('player.load() called');
+        } catch (err) {
+          console.error('Error setting source:', err);
+        }
       }
     }
   }, [currentClip]);
