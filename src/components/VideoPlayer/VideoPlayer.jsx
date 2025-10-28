@@ -12,75 +12,76 @@ function VideoPlayer() {
   
   console.log('VideoPlayer rendering');
   console.log('currentClip from store:', currentClip);
+  console.log('videoRef.current exists:', !!videoRef.current);
 
   useEffect(() => {
-    // Only initialize if we have a clip AND the video element exists
-    if (!currentClip) return;
+    console.log('=== Initialization useEffect running ===');
+    console.log('currentClip exists:', !!currentClip);
+    console.log('videoRef.current exists:', !!videoRef.current);
+    console.log('playerRef.current exists:', !!playerRef.current);
     
-    console.log('Checking video element availability...');
+    // Always initialize Video.js if we have the element, even without a clip
+    if (!videoRef.current) {
+      console.log('Video element not available yet');
+      return;
+    }
     
-    // Wait for video element to be rendered
-    const timeoutId = setTimeout(() => {
-      if (videoRef.current && !playerRef.current) {
-        console.log('Initializing Video.js player');
-        playerRef.current = videojs(videoRef.current, {
-          controls: true,
-          fluid: true,
-          responsive: true,
-          preload: 'auto',
-          playbackRates: [0.5, 1, 1.5, 2],
-          html5: {
-            nativeAudioTracks: false,
-            nativeVideoTracks: false,
-          },
-        });
+    // Initialize Video.js only once
+    if (!playerRef.current) {
+      console.log('=== Initializing Video.js ===');
+      playerRef.current = videojs(videoRef.current, {
+        controls: true,
+        fluid: true,
+        responsive: true,
+        preload: 'auto',
+        playbackRates: [0.5, 1, 1.5, 2],
+        html5: {
+          nativeAudioTracks: false,
+          nativeVideoTracks: false,
+        },
+      });
 
-        console.log('Video.js player initialized');
-        // Setup player event listeners
-        const player = playerRef.current;
+      console.log('Video.js player initialized successfully');
+      
+      // Setup player event listeners
+      const player = playerRef.current;
 
-        // Sync play state with store
-        player.on('play', () => {
-          console.log('Video playing');
-          setIsPlaying(true);
-        });
-        player.on('pause', () => {
-          console.log('Video paused');
-          setIsPlaying(false);
-        });
-        player.on('ended', () => {
-          console.log('Video ended');
-          setIsPlaying(false);
-        });
+      // Sync play state with store
+      player.on('play', () => {
+        console.log('Video playing');
+        setIsPlaying(true);
+      });
+      player.on('pause', () => {
+        console.log('Video paused');
+        setIsPlaying(false);
+      });
+      player.on('ended', () => {
+        console.log('Video ended');
+        setIsPlaying(false);
+      });
 
-        // Update playhead as video plays
-        player.on('timeupdate', () => {
-          if (player.currentTime() !== undefined) {
-            setPlayhead(player.currentTime());
-          }
-        });
+      // Update playhead as video plays
+      player.on('timeupdate', () => {
+        if (player.currentTime() !== undefined) {
+          setPlayhead(player.currentTime());
+        }
+      });
 
-        // Allow clicking on video to seek
-        player.on('click', () => {
-          player.play();
-        });
-      } else if (!videoRef.current) {
-        console.error('Video element not found in DOM');
-      } else if (playerRef.current) {
-        console.log('Player already initialized');
-      }
-    }, 100);
+      // Allow clicking on video to seek
+      player.on('click', () => {
+        player.play();
+      });
+    }
 
     // Cleanup
     return () => {
-      clearTimeout(timeoutId);
       if (playerRef.current) {
         console.log('Disposing Video.js player');
         playerRef.current.dispose();
         playerRef.current = null;
       }
     };
-  }, [currentClip, setPlayhead, setIsPlaying]);
+  }, [setPlayhead, setIsPlaying]);
 
   // Load video source when currentClip changes
   useEffect(() => {
