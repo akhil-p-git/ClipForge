@@ -10,9 +10,7 @@ function VideoPlayer() {
   const playerRef = useRef(null);
   const { currentClip, playhead, setPlayhead, isPlaying, setIsPlaying } = useStore();
   
-  console.log('VideoPlayer rendering');
-  console.log('currentClip from store:', currentClip);
-  console.log('videoRef.current exists:', !!videoRef.current);
+  // Temporarily removed console logs to reduce noise
 
   useEffect(() => {
     console.log('=== Initialization useEffect running ===');
