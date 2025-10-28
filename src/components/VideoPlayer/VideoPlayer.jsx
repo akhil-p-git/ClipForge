@@ -98,12 +98,21 @@ function VideoPlayer() {
           type: getVideoType(currentClip.format)
         });
         
+        // Add event listeners
         player.on('loadstart', () => console.log('Video: loadstart'));
         player.on('loadedmetadata', () => console.log('Video: loadedmetadata'));
-        player.on('canplay', () => console.log('Video: canplay'));
+        player.on('canplay', () => {
+          console.log('Video: canplay');
+          console.log('Player video element:', player.videoWidth(), player.videoHeight());
+          console.log('Player dimensions:', player.width(), player.height());
+          console.log('Video element:', player.el());
+        });
         player.on('error', () => console.error('Video error:', player.error()));
         
         player.load();
+        
+        // Force refresh the player display
+        player.trigger('loadstart');
       } catch (err) {
         console.error('Error setting source:', err);
       }
@@ -183,11 +192,10 @@ function VideoPlayer() {
         </div>
       )}
       
-      <div data-vjs-player className="video-player-wrapper">
+      <div data-vjs-player className="video-player-wrapper" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
         <video
           ref={videoRef}
           className="video-js vjs-theme-forest vjs-big-play-centered"
-          style={{ backgroundColor: '#000', display: 'block', width: '100%', height: '100%' }}
         />
       </div>
     </div>

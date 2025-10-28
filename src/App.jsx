@@ -52,7 +52,7 @@ function App() {
         {/* Center Content */}
         <div className="flex-1 flex flex-col">
           {/* Video Preview */}
-          <div className="flex-1 bg-black">
+          <div className="flex-1 bg-black" style={{ minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             <VideoPlayer />
           </div>
 

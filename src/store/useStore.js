@@ -29,7 +29,12 @@ export const useStore = create((set) => ({
   
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   
-  setCurrentClip: (clip) => set({ currentClip: clip }),
+  setCurrentClip: (clip) => {
+    console.log('=== SETTING CURRENT CLIP ===');
+    console.log('Clip:', clip);
+    set({ currentClip: clip });
+    console.log('State updated');
+  },
   
   updateClip: (clipId, updates) => set((state) => ({
     clips: state.clips.map(clip => 
