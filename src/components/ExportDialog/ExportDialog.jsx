@@ -1,13 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
+import './ExportDialog.css';
 
-function ExportDialog({ isOpen, onClose, onExport }) {
-  const { timelineClips } = useStore();
+function ExportDialog({ onExport }) {
+  const { timelineClips, clips } = useStore();
+  const [isOpen, setIsOpen] = useState(false);
   const [outputPath, setOutputPath] = useState('');
   const [resolution, setResolution] = useState('source');
   const [quality, setQuality] = useState('high');
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  // Expose dialog to window
+  useEffect(() => {
+    window.showExportDialog = () => setIsOpen(true);
+    return () => {
+      window.showExportDialog = undefined;
+    };
+  }, []);
 
   // Listen for export progress updates
   useEffect(() => {
@@ -49,12 +59,12 @@ function ExportDialog({ isOpen, onClose, onExport }) {
 
   const handleExport = async () => {
     if (!outputPath) {
-      alert('Please choose an output location');
+      alert('Please choose an output location using the Browse button');
       return;
     }
     
     if (timelineClips.length === 0) {
-      alert('No clips on timeline to export');
+      alert('No clips on timeline to export. Drag a clip from the media library to the timeline first.');
       return;
     }
     
@@ -62,18 +72,28 @@ function ExportDialog({ isOpen, onClose, onExport }) {
     setProgress(0);
     
     try {
+      // Enrich timeline clips with actual file paths from the clips array
+      const enrichedTimelineClips = timelineClips.map(timelineClip => {
+        const sourceClip = clips.find(c => c.id === timelineClip.clipId);
+        return {
+          ...timelineClip,
+          filePath: sourceClip?.filePath,
+          fileName: sourceClip?.fileName,
+        };
+      });
+      
       const config = {
         outputPath,
         resolution,
         quality,
-        timelineClips, // Pass timeline clips for export
+        timelineClips: enrichedTimelineClips,
       };
       
       await onExport(config);
       setExporting(false);
       setProgress(0);
-      alert('Export completed successfully!');
-      onClose();
+      // Don't show alert here - App.jsx will show it
+      setIsOpen(false);
     } catch (error) {
       console.error('Export error:', error);
       setExporting(false);
@@ -83,87 +103,90 @@ function ExportDialog({ isOpen, onClose, onExport }) {
   };
 
   return (
-    <div className="export-dialog-overlay" onClick={onClose}>
-      <div className="export-dialog" onClick={(e) => e.stopPropagation()}>
-        <div className="export-dialog-header">
-          <h2>Export Video</h2>
-          <button className="close-button" onClick={onClose}>×</button>
-        </div>
+    <>
+      {isOpen && (
+        <div className="export-dialog-overlay" onClick={() => setIsOpen(false)}>
+          <div className="export-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="export-dialog-header">
+              <h2>Export Video</h2>
+              <button className="close-button" onClick={() => setIsOpen(false)}>×</button>
+            </div>
 
-        <div className="export-dialog-content">
-          <div className="form-group">
-            <label>Output Location</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                type="text"
-                placeholder="Choose output path..."
-                value={outputPath}
-                onChange={(e) => setOutputPath(e.target.value)}
-                disabled={exporting}
-                style={{ flex: 1 }}
-              />
-              <button className="browse-button" onClick={handleBrowseOutput} disabled={exporting}>
-                Browse...
+            <div className="export-dialog-content">
+              <div className="form-group">
+                <label>Output Location</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Choose output path..."
+                    value={outputPath}
+                    onChange={(e) => setOutputPath(e.target.value)}
+                    disabled={exporting}
+                    style={{ flex: 1 }}
+                  />
+                  <button className="browse-button" onClick={handleBrowseOutput} disabled={exporting}>
+                    Browse...
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Resolution</label>
+                <select
+                  value={resolution}
+                  onChange={(e) => setResolution(e.target.value)}
+                  disabled={exporting}
+                >
+                  <option value="source">Source</option>
+                  <option value="1080p">1080p (1920x1080)</option>
+                  <option value="720p">720p (1280x720)</option>
+                  <option value="480p">480p (640x480)</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Quality</label>
+                <select
+                  value={quality}
+                  onChange={(e) => setQuality(e.target.value)}
+                  disabled={exporting}
+                >
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+
+              {exporting && (
+                <div className="progress-section">
+                  <div className="progress-bar">
+                    <div
+                      className="progress-fill"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <span className="progress-text">{Math.round(progress)}%</span>
+                </div>
+              )}
+            </div>
+
+            <div className="export-dialog-footer">
+              <button className="cancel-button" onClick={() => setIsOpen(false)} disabled={exporting}>
+                Cancel
+              </button>
+              <button
+                className="export-button"
+                onClick={handleExport}
+                disabled={exporting || !outputPath}
+              >
+                {exporting ? `Exporting... ${Math.round(progress)}%` : 'Export'}
               </button>
             </div>
           </div>
-
-          <div className="form-group">
-            <label>Resolution</label>
-            <select
-              value={resolution}
-              onChange={(e) => setResolution(e.target.value)}
-              disabled={exporting}
-            >
-              <option value="source">Source</option>
-              <option value="1080p">1080p (1920x1080)</option>
-              <option value="720p">720p (1280x720)</option>
-              <option value="480p">480p (640x480)</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Quality</label>
-            <select
-              value={quality}
-              onChange={(e) => setQuality(e.target.value)}
-              disabled={exporting}
-            >
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-          </div>
-
-          {exporting && (
-            <div className="progress-section">
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <span className="progress-text">{Math.round(progress)}%</span>
-            </div>
-          )}
         </div>
-
-        <div className="export-dialog-footer">
-          <button className="cancel-button" onClick={onClose} disabled={exporting}>
-            Cancel
-          </button>
-          <button
-            className="export-button"
-            onClick={handleExport}
-            disabled={exporting || !outputPath}
-          >
-            {exporting ? `Exporting... ${progress}%` : 'Export'}
-          </button>
-        </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }
 
 export default ExportDialog;
-

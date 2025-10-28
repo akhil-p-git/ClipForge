@@ -4,7 +4,7 @@ import MediaItem from './MediaItem';
 import './MediaLibrary.css';
 
 function MediaLibrary() {
-  const { clips, addClip, setCurrentClip } = useStore();
+  const { clips, addClip, setCurrentClip, currentClip } = useStore();
   const [isDragging, setIsDragging] = useState(false);
 
   const handleImportClick = async () => {
@@ -145,20 +145,28 @@ function MediaLibrary() {
     console.log('Setting current clip to:', clip.id);
     setCurrentClip(clip);
     console.log('Current clip set in store');
-    console.log('Store state after set:', useStore.getState().currentClip);
   };
 
   return (
     <div className="media-library">
       <div className="media-library-header">
         <h2 className="section-title">Media Library</h2>
-        <button 
-          className="import-button"
-          onClick={handleImportClick}
-          title="Import Video Files"
-        >
-          + Import
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            className="import-button"
+            onClick={handleImportClick}
+            title="Import Video Files"
+          >
+            Import
+          </button>
+          <button 
+            className="export-button"
+            onClick={() => window.showExportDialog?.()}
+            title="Export Video"
+          >
+            Export
+          </button>
+        </div>
       </div>
 
       <div 
@@ -184,6 +192,7 @@ function MediaLibrary() {
               <MediaItem 
                 key={clip.id} 
                 clip={clip} 
+                isSelected={currentClip?.id === clip.id}
                 onClick={() => handleClipClick(clip)}
               />
             ))}

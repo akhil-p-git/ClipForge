@@ -294,6 +294,11 @@
   font-size: 0.7rem;
   color: white;
   font-weight: 600;
+  z-index: 10;
+}
+
+.trim-marker.in-point .trim-marker-label {
+  background: #3b82f6;
 }
 
 .trim-marker.out-point .trim-marker-label {

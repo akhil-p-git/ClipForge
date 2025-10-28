@@ -141,13 +141,50 @@ ipcMain.handle('video:export', async (event, config) => {
         return;
       }
       
-      // For MVP: simple copy/export (will be enhanced)
-      const inputPath = config.inputPath || '/path/to/input.mp4';
-      const outputPath = config.outputPath || './output.mp4';
+      // Get actual file paths from timeline clips
+      const timelineClips = config.timelineClips || [];
+      
+      if (timelineClips.length === 0) {
+        resolve({ 
+          success: false, 
+          message: 'No clips on timeline to export' 
+        });
+        return;
+      }
+      
+      // For MVP: export the first clip
+      // TODO: Support concatenating multiple clips
+      const firstClip = timelineClips[0];
+      
+      if (!firstClip.filePath) {
+        resolve({ 
+          success: false, 
+          message: 'Clip missing file path' 
+        });
+        return;
+      }
+      
+      const inputPath = firstClip.filePath;
+      const outputPath = config.outputPath;
       
       console.log('Starting export from', inputPath, 'to', outputPath);
       
-      const command = ffmpeg(inputPath)
+      // Build the FFmpeg command
+      let command = ffmpeg(inputPath);
+      
+      // Apply trim if in/out points are set
+      const inPoint = firstClip.trimStart || firstClip.startTime || 0;
+      const outPoint = firstClip.trimEnd || (firstClip.startTime + firstClip.duration);
+      const duration = outPoint - inPoint;
+      
+      console.log('Trim settings - In:', inPoint, 'Out:', outPoint, 'Duration:', duration);
+      
+      if (duration > 0) {
+        command.seekInput(inPoint);
+        command.duration(duration);
+      }
+      
+      const ffmpegCommand = command
         .on('start', (cmdline) => {
           console.log('FFmpeg started:', cmdline);
         })
@@ -167,15 +204,15 @@ ipcMain.handle('video:export', async (event, config) => {
       // Apply settings based on config
       if (config.resolution !== 'source') {
         if (config.resolution === '1080p') {
-          command.size('1920x1080');
+          ffmpegCommand.size('1920x1080');
         } else if (config.resolution === '720p') {
-          command.size('1280x720');
+          ffmpegCommand.size('1280x720');
         } else if (config.resolution === '480p') {
-          command.size('640x480');
+          ffmpegCommand.size('640x480');
         }
       }
       
-      command.save(outputPath);
+      ffmpegCommand.output(outputPath).run();
     });
   });
 });

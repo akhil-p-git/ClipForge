@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useDrag } from 'react-dnd';
 
-function MediaItem({ clip, onClick }) {
+function MediaItem({ clip, onClick, isSelected = false }) {
+  const mouseDownPosRef = useRef(null);
+  
   const [{ isDragging }, drag] = useDrag({
     type: 'clip',
     item: { clip },
@@ -23,23 +25,42 @@ function MediaItem({ clip, onClick }) {
     return `${mb} MB`;
   };
 
+  const handleMouseDown = (e) => {
+    // Track mouse position to detect if it's a drag or click
+    mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+  };
+
   const handleClick = (e) => {
     console.log('=== MediaItem CLICK event fired ===');
-    e.stopPropagation();
-    e.preventDefault();
+    
+    // Check if this was a drag by comparing mouse positions
+    if (mouseDownPosRef.current) {
+      const deltaX = Math.abs(e.clientX - mouseDownPosRef.current.x);
+      const deltaY = Math.abs(e.clientY - mouseDownPosRef.current.y);
+      const moved = deltaX > 5 || deltaY > 5; // Allow 5px threshold
+      
+      if (moved) {
+        console.log('Click ignored - mouse moved (drag occurred)');
+        mouseDownPosRef.current = null;
+        return;
+      }
+    }
+    
     console.log('Calling onClick handler with clip:', clip);
     if (onClick) {
       onClick();
     }
     console.log('onClick handler called');
+    
+    mouseDownPosRef.current = null;
   };
 
   return (
     <div 
       ref={drag}
-      className={`media-item ${isDragging ? 'dragging' : ''}`}
+      className={`media-item ${isDragging ? 'dragging' : ''} ${isSelected ? 'selected' : ''}`}
       onClick={handleClick}
-      onMouseDown={(e) => e.stopPropagation()}
+      onMouseDown={handleMouseDown}
       style={{ opacity: isDragging ? 0.5 : 1, cursor: 'pointer' }}
     >
       <div className="media-item-thumbnail">

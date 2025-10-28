@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #1f2937;
+  background: #141519;
 }
 
 .media-library-header {
@@ -35,6 +35,22 @@
 
 .import-button:hover {
   background: #2563eb;
+}
+
+.export-button {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.export-button:hover {
+  background: #059669;
 }
 
 .drop-zone {
@@ -82,15 +98,21 @@
 }
 
 .media-item {
-  background: #374151;
+  background: #1a1b1e;
+  border: 1px solid #2d2d30;
   border-radius: 8px;
   padding: 12px;
-  cursor: move;
-  cursor: grab;
+  cursor: pointer;
   transition: all 0.2s;
   display: flex;
   gap: 12px;
   user-select: none;
+}
+
+.media-item.selected {
+  background: #25262a;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
 }
 
 .media-item:active {

@@ -8,13 +8,18 @@ import { useStore } from '../../store/useStore';
 function VideoPlayer() {
   const videoRef = useRef(null);
   const playerRef = useRef(null);
+  const isSyncingRef = useRef(false);
   const { currentClip, playhead, setPlayhead, isPlaying, setIsPlaying } = useStore();
-  
-  // Temporarily removed console logs to reduce noise
 
   useEffect(() => {
-    // Initialize Video.js once when video element exists
-    if (!videoRef.current || playerRef.current) {
+    // Initialize Video.js when video element becomes available
+    if (!videoRef.current) {
+      console.log('No video element yet');
+      return;
+    }
+    
+    if (playerRef.current) {
+      console.log('Player already initialized');
       return;
     }
     
@@ -34,9 +39,15 @@ function VideoPlayer() {
     // Setup player event listeners (only once)
     const player = playerRef.current;
 
-    player.on('play', () => setIsPlaying(true));
-    player.on('pause', () => setIsPlaying(false));
-    player.on('ended', () => setIsPlaying(false));
+    player.on('play', () => {
+      if (!isSyncingRef.current) setIsPlaying(true);
+    });
+    player.on('pause', () => {
+      if (!isSyncingRef.current) setIsPlaying(false);
+    });
+    player.on('ended', () => {
+      if (!isSyncingRef.current) setIsPlaying(false);
+    });
 
     player.on('timeupdate', () => {
       if (player.currentTime() !== undefined) {
@@ -51,11 +62,17 @@ function VideoPlayer() {
         playerRef.current = null;
       }
     };
-  }, [setPlayhead, setIsPlaying]);
+  }, [currentClip, setPlayhead, setIsPlaying]); // Re-run when clip changes so video element is available
 
   // Load video source when currentClip changes
   useEffect(() => {
+    console.log('=== Load video useEffect ===');
+    console.log('playerRef.current:', !!playerRef.current);
+    console.log('currentClip:', !!currentClip);
+    console.log('currentClip data:', currentClip);
+    
     if (!playerRef.current || !currentClip) {
+      console.log('Skipping load - player or clip missing');
       return;
     }
     
@@ -103,9 +120,27 @@ function VideoPlayer() {
     }
   }, [playhead, currentClip]);
 
-  // Removed play/pause sync effect to prevent infinite loop
-  // Player events (play, pause, ended) already update the store
-  // We only need to READ from the store for UI, not write back to the player
+  // Sync play/pause state from store to player
+  useEffect(() => {
+    if (!playerRef.current) return;
+    
+    const player = playerRef.current;
+    
+    // Set flag to prevent event handlers from updating store
+    isSyncingRef.current = true;
+    
+    // Only change player state if it doesn't match store
+    if (isPlaying && player.paused()) {
+      player.play().catch(() => {});
+    } else if (!isPlaying && !player.paused()) {
+      player.pause();
+    }
+    
+    // Reset flag after a brief delay
+    setTimeout(() => {
+      isSyncingRef.current = false;
+    }, 300);
+  }, [isPlaying]);
 
   const getVideoType = (format) => {
     const types = {

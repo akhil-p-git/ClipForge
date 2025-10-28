@@ -34,6 +34,55 @@ function Timeline() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Calculate timeline duration based on clips
+  const calculateTimelineDuration = () => {
+    if (timelineClips.length === 0) return 60; // Default 60 seconds
+    
+    // Find the furthest end time of all clips
+    const maxEnd = Math.max(
+      ...timelineClips.map(clip => clip.startTime + clip.duration)
+    );
+    
+    // Add some padding and round up to nearest 10 seconds
+    return Math.ceil((maxEnd + 10) / 10) * 10;
+  };
+
+  const timelineDuration = calculateTimelineDuration();
+  
+  // Generate ruler marks
+  const rulerMarks = [];
+  for (let i = 0; i <= timelineDuration; i += 10) {
+    rulerMarks.push(i);
+  }
+
+  const handleApplyTrim = () => {
+    if (inPoint === null || outPoint === null) {
+      alert('Please set both In and Out points first (press I for In, O for Out)');
+      return;
+    }
+    
+    if (outPoint <= inPoint) {
+      alert('Out point must be after In point');
+      return;
+    }
+
+    // Apply trim to the first clip on the timeline
+    if (timelineClips.length > 0) {
+      const clipToTrim = timelineClips.find(clip => clip.trackId === 0);
+      if (clipToTrim) {
+        updateTimelineClip(clipToTrim.id, {
+          trimStart: inPoint,
+          trimEnd: outPoint,
+          duration: outPoint - inPoint
+        });
+        alert(`Trim applied! Video will play from ${formatTime(inPoint)} to ${formatTime(outPoint)}`);
+        console.log('Trim applied:', { inPoint, outPoint, clipId: clipToTrim.id });
+      }
+    } else {
+      alert('No clips on the timeline to trim');
+    }
+  };
+
   // Keyboard shortcuts for trim points and playback
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -47,14 +96,16 @@ function Timeline() {
         console.log('Set In Point at:', playhead);
         setInPoint(playhead);
         e.preventDefault();
+        e.stopPropagation();
       } else if (e.key === 'o' || e.key === 'O') {
         console.log('Set Out Point at:', playhead);
         setOutPoint(playhead);
         e.preventDefault();
+        e.stopPropagation();
       }
       
       // Playback shortcuts
-      else if (e.key === ' ') {
+      if (e.key === ' ') {
         setIsPlaying(!isPlaying);
         e.preventDefault();
       }
@@ -65,7 +116,7 @@ function Timeline() {
   }, [playhead, setInPoint, setOutPoint, isPlaying, setIsPlaying]);
 
   return (
-    <div className="timeline-container">
+    <div className="timeline-container" tabIndex={0}>
       <div className="timeline-header">
         <h2 className="section-title">Timeline</h2>
         <div className="timeline-controls">
@@ -79,7 +130,7 @@ function Timeline() {
         {/* Time Ruler */}
         <div className="timeline-ruler">
           <div className="ruler-marks">
-            {[0, 10, 20, 30, 40, 50, 60].map(second => (
+            {rulerMarks.map(second => (
               <div key={second} className="ruler-mark">
                 <span className="mark-time">{formatTime(second)}</span>
                 <div className="mark-line"></div>
@@ -89,7 +140,7 @@ function Timeline() {
         </div>
 
         {/* Playhead */}
-        <div className="timeline-playhead" style={{ left: `${(playhead / 60) * 100}%` }}>
+        <div className="timeline-playhead" style={{ left: `${(playhead / timelineDuration) * 100}%` }}>
           <div className="playhead-line"></div>
           <div className="playhead-indicator">
             <span className="playhead-time">{formatTime(playhead)}</span>
@@ -98,14 +149,14 @@ function Timeline() {
 
         {/* Trim Points */}
         {inPoint !== null && (
-          <div className="trim-marker in-point" style={{ left: `${(inPoint / 60) * 100}%` }}>
+          <div className="trim-marker in-point" style={{ left: `${(inPoint / timelineDuration) * 100}%` }}>
             <div className="trim-marker-line"></div>
             <div className="trim-marker-label">In: {formatTime(inPoint)}</div>
           </div>
         )}
         
         {outPoint !== null && (
-          <div className="trim-marker out-point" style={{ left: `${(outPoint / 60) * 100}%` }}>
+          <div className="trim-marker out-point" style={{ left: `${(outPoint / timelineDuration) * 100}%` }}>
             <div className="trim-marker-line"></div>
             <div className="trim-marker-label">Out: {formatTime(outPoint)}</div>
           </div>
@@ -116,8 +167,8 @@ function Timeline() {
           <div 
             className="trim-region" 
             style={{ 
-              left: `${(inPoint / 60) * 100}%`,
-              width: `${((outPoint - inPoint) / 60) * 100}%`
+              left: `${(inPoint / timelineDuration) * 100}%`,
+              width: `${((outPoint - inPoint) / timelineDuration) * 100}%`
             }}
           />
         )}
@@ -127,7 +178,17 @@ function Timeline() {
           {/* Track 1: Main Video */}
           <div className="timeline-track">
             <div className="track-label">Track 1</div>
-            <div className="track-content">
+            <div 
+              className="track-content"
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const percent = (x / rect.width) * 100;
+                const newTime = (percent / 100) * timelineDuration;
+                setPlayhead(newTime);
+                console.log('Clicked timeline at:', newTime);
+              }}
+            >
               {timelineClips.filter(clip => clip.trackId === 0).length === 0 ? (
                 <div className="empty-track">Drop clips here</div>
               ) : (
@@ -184,6 +245,16 @@ function Timeline() {
           </div>
           <div className="trim-shortcuts">
             <span className="shortcut-hint">Press <kbd>I</kbd> for In, <kbd>O</kbd> for Out</span>
+            {inPoint !== null && outPoint !== null && (
+              <button 
+                className="control-button" 
+                onClick={handleApplyTrim}
+                style={{ marginLeft: '12px', background: '#10b981', color: 'white' }}
+                title="Apply Trim"
+              >
+                Apply Trim
+              </button>
+            )}
           </div>
         </div>
       </div>

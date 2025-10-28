@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import MediaLibrary from './components/MediaLibrary/MediaLibrary';
@@ -9,7 +9,6 @@ import './App.css';
 
 function App() {
   console.log('App component rendering...');
-  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const handleExport = async (config) => {
     console.log('Export config:', config);
@@ -21,7 +20,12 @@ function App() {
     
     try {
       const result = await window.electronAPI.exportVideo(config);
-      alert(result.message || 'Export completed successfully!');
+      
+      if (result.success) {
+        alert(result.message || 'Export completed successfully!');
+      } else {
+        alert(`Export failed: ${result.message || 'Unknown error'}`);
+      }
     } catch (error) {
       console.error('Export error:', error);
       alert(`Export failed: ${error.message}`);
@@ -32,21 +36,11 @@ function App() {
     <DndProvider backend={HTML5Backend}>
       <div className="h-screen flex flex-col bg-gray-900">
       {/* Menu Bar */}
-      <div className="h-12 bg-gray-800 text-white flex items-center justify-between px-4 border-b border-gray-700">
+      <div className="h-12 bg-gray-800 text-white flex items-center justify-center px-4 border-b border-gray-700">
         <h1 className="text-lg font-semibold">ClipForge</h1>
-        <button
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors"
-          onClick={() => setShowExportDialog(true)}
-        >
-          Export
-        </button>
       </div>
 
-      <ExportDialog
-        isOpen={showExportDialog}
-        onClose={() => setShowExportDialog(false)}
-        onExport={handleExport}
-      />
+      <ExportDialog onExport={handleExport} />
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
