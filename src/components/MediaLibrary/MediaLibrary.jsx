@@ -50,13 +50,13 @@ function MediaLibrary() {
             console.log('Adding clip with metadata:', clip);
             addClip(clip);
           } catch (error) {
-            console.error('Failed to get metadata, using fallback:', error);
+            console.log('FFmpeg metadata failed, adding with defaults:', error.message);
             // Fallback with basic info if FFmpeg fails
             const clip = {
               id: `clip-${Date.now()}-${Math.random()}`,
               filePath: filePath,
               fileName: filePath.split('/').pop() || filePath.split('\\').pop(),
-              duration: 0,
+              duration: 10,
               resolution: 'Unknown',
               fileSize: 0,
               format: filePath.split('.').pop(),
