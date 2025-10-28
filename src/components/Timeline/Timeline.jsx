@@ -173,8 +173,10 @@ function Timeline() {
           />
         )}
 
-        {/* Tracks */}
-        <div className="timeline-tracks" ref={drop}>
+        {/* Scrollable Tracks Container */}
+        <div className="timeline-tracks-wrapper">
+          {/* Tracks */}
+          <div className="timeline-tracks" ref={drop}>
           {/* Track 1: Main Video */}
           <div className="timeline-track">
             <div className="track-label">Track 1</div>
@@ -232,6 +234,7 @@ function Timeline() {
               )}
             </div>
           </div>
+        </div>
         </div>
 
         {/* Playback Controls */}

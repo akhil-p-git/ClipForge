@@ -26,33 +26,46 @@ function MediaItem({ clip, onClick, isSelected = false }) {
   };
 
   const handleMouseDown = (e) => {
-    // Track mouse position to detect if it's a drag or click
+    // Always track mouse position on mousedown to detect drags
     mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+    console.log('Mouse down at:', mouseDownPosRef.current);
   };
 
   const handleClick = (e) => {
     console.log('=== MediaItem CLICK event fired ===');
     
-    // Check if this was a drag by comparing mouse positions
+    // If currently dragging, always ignore clicks
+    if (isDragging) {
+      console.log('Click ignored - drag in progress');
+      return;
+    }
+    
+    // Check if mouse was moved significantly (indicating drag)
+    let wasDragged = false;
     if (mouseDownPosRef.current) {
       const deltaX = Math.abs(e.clientX - mouseDownPosRef.current.x);
       const deltaY = Math.abs(e.clientY - mouseDownPosRef.current.y);
-      const moved = deltaX > 5 || deltaY > 5; // Allow 5px threshold
+      const moved = deltaX > 3 || deltaY > 3; // Lower threshold to 3px
       
       if (moved) {
-        console.log('Click ignored - mouse moved (drag occurred)');
-        mouseDownPosRef.current = null;
-        return;
+        console.log('Click ignored - mouse moved', { deltaX, deltaY });
+        wasDragged = true;
       }
+      mouseDownPosRef.current = null;
     }
     
-    console.log('Calling onClick handler with clip:', clip);
+    // If dragged, don't trigger click
+    if (wasDragged) {
+      return;
+    }
+    
+    // This is a genuine click
+    console.log('Genuine click - calling onClick handler');
     if (onClick) {
       onClick();
+    } else {
+      console.error('No onClick handler provided!');
     }
-    console.log('onClick handler called');
-    
-    mouseDownPosRef.current = null;
   };
 
   return (

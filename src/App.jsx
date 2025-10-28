@@ -57,7 +57,7 @@ function App() {
           </div>
 
           {/* Timeline - Bottom Panel */}
-          <div className="h-64 bg-gray-800 border-t border-gray-700">
+          <div className="h-64 bg-gray-800 border-t border-gray-700" style={{ flexShrink: 0 }}>
             <Timeline />
           </div>
         </div>

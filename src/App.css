@@ -133,10 +133,18 @@
 
 .h-12 {
   height: 3rem;
+  flex-shrink: 0;
 }
 
 .h-6 {
   height: 1.5rem;
+  flex-shrink: 0;
+}
+
+.h-64 {
+  height: 16rem;
+  min-height: 16rem;
+  flex-shrink: 0;
 }
 
 .rounded {

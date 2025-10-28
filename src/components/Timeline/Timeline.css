@@ -28,6 +28,8 @@
   cursor: pointer;
   font-size: 0.875rem;
   transition: background 0.2s;
+  pointer-events: auto;
+  z-index: 11;
 }
 
 .control-button:hover {
@@ -47,6 +49,7 @@
   position: relative;
   overflow-x: auto;
   overflow-y: hidden;
+  min-height: 0;
 }
 
 /* Time Ruler */
@@ -120,6 +123,14 @@
   font-size: 0.75rem;
   color: white;
   font-weight: 600;
+}
+
+/* Scrollable tracks area */
+.timeline-tracks-wrapper {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  position: relative;
 }
 
 /* Tracks */
@@ -231,6 +242,10 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  position: relative;
+  z-index: 10;
+  background: #1f2937;
+  flex-shrink: 0;
 }
 
 .play-button {
@@ -246,6 +261,8 @@
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
+  pointer-events: auto;
+  z-index: 11;
 }
 
 .play-button:hover {
