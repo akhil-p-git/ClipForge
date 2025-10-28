@@ -223,6 +223,7 @@ function VideoPlayer() {
         <video
           ref={videoRef}
           className="video-js vjs-theme-forest vjs-big-play-centered"
+          style={{ backgroundColor: '#000' }}
         />
       </div>
     </div>
