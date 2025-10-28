@@ -64,49 +64,28 @@ function VideoPlayer() {
     
     // For Electron, we need to load the file:// path
     if (currentClip.filePath) {
-        // Ensure proper file:// URL format for Electron
-        let videoSrc = currentClip.filePath;
-        if (!videoSrc.startsWith('file://')) {
-          videoSrc = `file://${videoSrc}`;
-        }
+      // Ensure proper file:// URL format for Electron
+      let videoSrc = currentClip.filePath;
+      if (!videoSrc.startsWith('file://')) {
+        videoSrc = `file://${videoSrc}`;
+      }
+      
+      console.log('Setting video source:', videoSrc);
+      
+      try {
+        player.src({
+          src: videoSrc,
+          type: getVideoType(currentClip.format)
+        });
         
-        console.log('Setting video source:', videoSrc);
-        console.log('Clip format:', currentClip.format);
+        player.on('loadstart', () => console.log('Video: loadstart'));
+        player.on('loadedmetadata', () => console.log('Video: loadedmetadata'));
+        player.on('canplay', () => console.log('Video: canplay'));
+        player.on('error', () => console.error('Video error:', player.error()));
         
-        // Set source
-        try {
-          player.src({
-            src: videoSrc,
-            type: getVideoType(currentClip.format)
-          });
-          
-          // Event listeners
-          player.on('loadstart', () => {
-            console.log('Video: loadstart');
-          });
-          
-          player.on('loadedmetadata', () => {
-            console.log('Video: loadedmetadata', player.duration());
-          });
-          
-          player.on('loadeddata', () => {
-            console.log('Video: loadeddata');
-          });
-          
-          player.on('canplay', () => {
-            console.log('Video: canplay - ready to play');
-          });
-          
-          player.on('error', () => {
-            console.error('Video player error:', player.error());
-          });
-          
-          // Load the video
-          player.load();
-          console.log('player.load() called');
-        } catch (err) {
-          console.error('Error setting source:', err);
-        }
+        player.load();
+      } catch (err) {
+        console.error('Error setting source:', err);
       }
     }
   }, [currentClip]);
