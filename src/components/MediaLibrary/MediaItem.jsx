@@ -25,10 +25,12 @@ function MediaItem({ clip, onClick }) {
 
   const handleClick = (e) => {
     console.log('=== MediaItem CLICK event fired ===');
-    e.stopPropagation(); // Prevent drag event from triggering
+    e.stopPropagation();
     e.preventDefault();
     console.log('Calling onClick handler with clip:', clip);
-    onClick();
+    if (onClick) {
+      onClick();
+    }
     console.log('onClick handler called');
   };
 
@@ -37,7 +39,8 @@ function MediaItem({ clip, onClick }) {
       ref={drag}
       className={`media-item ${isDragging ? 'dragging' : ''}`}
       onClick={handleClick}
-      style={{ opacity: isDragging ? 0.5 : 1 }}
+      onMouseDown={(e) => e.stopPropagation()}
+      style={{ opacity: isDragging ? 0.5 : 1, cursor: 'pointer' }}
     >
       <div className="media-item-thumbnail">
         <div className="thumbnail-placeholder">
