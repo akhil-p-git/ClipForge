@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useDrop brethren, useDrag } from 'react-dnd';
+import { useDrop, useDrag } from 'react-dnd';
 import { useStore } from '../../store/useStore';
 import TimelineClip from './TimelineClip';
 import './Timeline.css';
@@ -135,21 +135,13 @@ function Timeline() {
                   .filter(clip => clip.trackId === 0)
                   .map(clip => {
                     const sourceClip = clips.find(c => c.id === clip.clipId);
-                    const clipWidth = `${(clip.duration / 60) * 100}%`;
-                    const clipLeft = `${(clip.startTime / 60) * 100}%`;
-                    
                     return (
-                      <div 
-                        key={clip.id} 
-                        className="clip-block"
-                        style={{ 
-                          left: clipLeft,
-                          width: clipWidth,
-                          position: 'absolute'
-                        }}
-                      >
-                        <span className="clip-name">{sourceClip?.fileName || 'Clip'}</span>
-                      </div>
+                      <TimelineClip
+                        key={clip.id}
+                        clip={clip}
+                        sourceClip={sourceClip}
+                        updateClip={updateTimelineClip}
+                      />
                     );
                   })
               )}
