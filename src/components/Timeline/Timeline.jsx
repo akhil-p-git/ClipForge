@@ -4,7 +4,7 @@ import { useStore } from '../../store/useStore';
 import './Timeline.css';
 
 function Timeline() {
-  const { timelineClips, playhead, isPlaying, setInPoint, setOutPoint, inPoint, outPoint, setIsPlaying, setPlayhead, addToTimeline } = useStore();
+  const { timelineClips, clips, playhead, isPlaying, setInPoint, setOutPoint, inPoint, outPoint, setIsPlaying, setPlayhead, addToTimeline } = useStore();
 
   const [{ isOver }, drop] = useDrop({
     accept: 'clip',
@@ -132,11 +132,25 @@ function Timeline() {
               ) : (
                 timelineClips
                   .filter(clip => clip.trackId === 0)
-                  .map(clip => (
-                    <div key={clip.id} className="clip-block">
-                      <span className="clip-name">{clip.clipId}</span>
-                    </div>
-                  ))
+                  .map(clip => {
+                    const sourceClip = clips.find(c => c.id === clip.clipId);
+                    const clipWidth = `${(clip.duration / 60) * 100}%`;
+                    const clipLeft = `${(clip.startTime / 60) * 100}%`;
+                    
+                    return (
+                      <div 
+                        key={clip.id} 
+                        className="clip-block"
+                        style={{ 
+                          left: clipLeft,
+                          width: clipWidth,
+                          position: 'absolute'
+                        }}
+                      >
+                        <span className="clip-name">{sourceClip?.fileName || 'Clip'}</span>
+                      </div>
+                    );
+                  })
               )}
             </div>
           </div>
@@ -150,11 +164,25 @@ function Timeline() {
               ) : (
                 timelineClips
                   .filter(clip => clip.trackId === 1)
-                  .map(clip => (
-                    <div key={clip.id} className="clip-block overlay">
-                      <span className="clip-name">{clip.clipId}</span>
-                    </div>
-                  ))
+                  .map(clip => {
+                    const sourceClip = clips.find(c => c.id === clip.clipId);
+                    const clipWidth = `${(clip.duration / 60) * 100}%`;
+                    const clipLeft = `${(clip.startTime / 60) * 100}%`;
+                    
+                    return (
+                      <div 
+                        key={clip.id} 
+                        className="clip-block overlay"
+                        style={{ 
+                          left: clipLeft,
+                          width: clipWidth,
+                          position: 'absolute'
+                        }}
+                      >
+                        <span className="clip-name">{sourceClip?.fileName || 'Clip'}</span>
+                      </div>
+                    );
+                  })
               )}
             </div>
           </div>
