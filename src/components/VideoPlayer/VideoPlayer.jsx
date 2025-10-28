@@ -81,7 +81,8 @@ function VideoPlayer() {
         playerRef.current = null;
       }
     };
-  }, [setPlayhead, setIsPlaying]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentClip]); // Re-run when clip changes so we can attach to the video element
 
   // Load video source when currentClip changes
   useEffect(() => {
