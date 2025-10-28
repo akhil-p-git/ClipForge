@@ -154,18 +154,9 @@ function VideoPlayer() {
     }
   }, [playhead, currentClip]);
 
-  // Sync play/pause state
-  useEffect(() => {
-    if (playerRef.current) {
-      const player = playerRef.current;
-      
-      if (isPlaying && player.paused()) {
-        player.play();
-      } else if (!isPlaying && !player.paused()) {
-        player.pause();
-      }
-    }
-  }, [isPlaying]);
+  // Removed play/pause sync effect to prevent infinite loop
+  // Player events (play, pause, ended) already update the store
+  // We only need to READ from the store for UI, not write back to the player
 
   const getVideoType = (format) => {
     const types = {
