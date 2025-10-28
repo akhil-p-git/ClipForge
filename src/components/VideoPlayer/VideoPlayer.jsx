@@ -62,7 +62,7 @@ function VideoPlayer() {
         playerRef.current = null;
       }
     };
-  }, [currentClip, setPlayhead, setIsPlaying]); // Re-run when clip changes so video element is available
+  }, [setPlayhead, setIsPlaying]); // Only initialize once on mount
 
   // Load video source when currentClip changes
   useEffect(() => {

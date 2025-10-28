@@ -236,29 +236,29 @@ function Timeline() {
           </div>
         </div>
         </div>
+      </div>
 
-        {/* Playback Controls */}
-        <div className="playback-controls">
-          <button className="play-button" title="Play/Pause" onClick={() => setIsPlaying(!isPlaying)}>
-            {isPlaying ? '⏸' : '▶'}
-          </button>
-          <button className="control-button" title="Stop" onClick={() => { setIsPlaying(false); setPlayhead(0); }}>⏹</button>
-          <div className="time-display">
-            {formatTime(playhead)} / --:--
-          </div>
-          <div className="trim-shortcuts">
-            <span className="shortcut-hint">Press <kbd>I</kbd> for In, <kbd>O</kbd> for Out</span>
-            {inPoint !== null && outPoint !== null && (
-              <button 
-                className="control-button" 
-                onClick={handleApplyTrim}
-                style={{ marginLeft: '12px', background: '#10b981', color: 'white' }}
-                title="Apply Trim"
-              >
-                Apply Trim
-              </button>
-            )}
-          </div>
+      {/* Playback Controls */}
+      <div className="playback-controls">
+        <button className="play-button" title="Play/Pause" onClick={() => setIsPlaying(!isPlaying)}>
+          {isPlaying ? '⏸' : '▶'}
+        </button>
+        <button className="control-button" title="Stop" onClick={() => { setIsPlaying(false); setPlayhead(0); }}>⏹</button>
+        <div className="time-display">
+          {formatTime(playhead)} / --:--
+        </div>
+        <div className="trim-shortcuts">
+          <span className="shortcut-hint">Press <kbd>I</kbd> for In, <kbd>O</kbd> for Out</span>
+          {inPoint !== null && outPoint !== null && (
+            <button 
+              className="control-button" 
+              onClick={handleApplyTrim}
+              style={{ marginLeft: '12px', background: '#10b981', color: 'white' }}
+              title="Apply Trim"
+            >
+              Apply Trim
+            </button>
+          )}
         </div>
       </div>
     </div>
