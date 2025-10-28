@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { useDrop, useDrag } from 'react-dnd';
+import { useDrop brethren, useDrag } from 'react-dnd';
 import { useStore } from '../../store/useStore';
+import TimelineClip from './TimelineClip';
 import './Timeline.css';
 
 function Timeline() {
