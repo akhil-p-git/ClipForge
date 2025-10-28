@@ -80,7 +80,7 @@ function VideoPlayer() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentClip]); // Re-run when clip changes so we can attach to the video element
+  }, []); // Run only once on mount
 
   // Load video source when currentClip changes
   useEffect(() => {
