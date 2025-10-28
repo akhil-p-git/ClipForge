@@ -61,9 +61,9 @@ function VideoPlayer() {
     
     const player = playerRef.current;
     console.log('Loading video:', currentClip.fileName);
-      
-      // For Electron, we need to load the file:// path
-      if (currentClip.filePath) {
+    
+    // For Electron, we need to load the file:// path
+    if (currentClip.filePath) {
         // Ensure proper file:// URL format for Electron
         let videoSrc = currentClip.filePath;
         if (!videoSrc.startsWith('file://')) {
