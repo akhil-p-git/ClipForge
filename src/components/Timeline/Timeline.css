@@ -276,6 +276,23 @@
   font-variant-numeric: tabular-nums;
 }
 
+.video-info-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;
+}
+
+.video-name {
+  font-size: 0.875rem;
+  color: #e5e7eb;
+  font-weight: 500;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 
 /* Trim Markers */
 .trim-marker {

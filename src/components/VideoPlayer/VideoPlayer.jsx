@@ -9,7 +9,10 @@ function VideoPlayer() {
   const videoRef = useRef(null);
   const playerRef = useRef(null);
   const isSyncingRef = useRef(false);
-  const { currentClip, playhead, setPlayhead, isPlaying, setIsPlaying } = useStore();
+  const currentClip = useStore(state => state.currentClip);
+  const { playhead, setPlayhead, isPlaying, setIsPlaying } = useStore();
+  
+  console.log('VideoPlayer render - currentClip:', currentClip ? 'exists' : 'null');
 
   useEffect(() => {
     // Initialize Video.js when video element becomes available
@@ -153,44 +156,32 @@ function VideoPlayer() {
     return types[format?.toLowerCase()] || 'video/mp4';
   };
 
-  // Show placeholder when no clip is selected
-  if (!currentClip) {
-    return (
-      <div className="video-player-empty">
-        <div className="empty-state-content">
-          <svg 
-            width="64" 
-            height="64" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            xmlns="http://www.w3.org/2000/svg"
-            className="empty-icon"
-          >
-            <path 
-              d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 16.5V7.5L16 12L10 16.5Z" 
-              fill="currentColor"
-            />
-          </svg>
-          <h3 className="empty-title">No Video Selected</h3>
-          <p className="empty-description">
-            Click a clip from the media library to preview it
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  // Always render video element so player can initialize
   return (
     <div className="video-player-container">
-      <div className="video-player-header">
-        <h3 className="video-title">{currentClip.fileName}</h3>
-        <div className="video-info">
-          {currentClip.resolution !== 'Unknown' && (
-            <span className="info-badge">{currentClip.resolution}</span>
-          )}
-          <span className="info-badge">{currentClip.format?.toUpperCase()}</span>
+      {!currentClip && (
+        <div className="video-player-empty" style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none' }}>
+          <div className="empty-state-content">
+            <svg 
+              width="64" 
+              height="64" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              className="empty-icon"
+            >
+              <path 
+                d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 16.5V7.5L16 12L10 16.5Z" 
+                fill="currentColor"
+              />
+            </svg>
+            <h3 className="empty-title">No Video Selected</h3>
+            <p className="empty-description">
+              Click a clip from the media library to preview it
+            </p>
+          </div>
         </div>
-      </div>
+      )}
       
       <div data-vjs-player className="video-player-wrapper">
         <video

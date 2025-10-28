@@ -247,6 +247,18 @@ function Timeline() {
         <div className="time-display">
           {formatTime(playhead)} / --:--
         </div>
+        
+        {/* Video Info */}
+        {clips.length > 0 && (
+          <div className="video-info-display">
+            <span className="video-name">{clips[0]?.fileName || 'No video'}</span>
+            {clips[0]?.resolution && clips[0].resolution !== 'Unknown' && (
+              <span className="info-badge">{clips[0].resolution}</span>
+            )}
+            <span className="info-badge">{clips[0]?.format?.toUpperCase() || 'VID'}</span>
+          </div>
+        )}
+        
         <div className="trim-shortcuts">
           <span className="shortcut-hint">Press <kbd>I</kbd> for In, <kbd>O</kbd> for Out</span>
           {inPoint !== null && outPoint !== null && (
