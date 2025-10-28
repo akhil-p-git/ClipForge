@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { useDrop } from 'react-dnd';
+import { useDrop, useDrag } from 'react-dnd';
 import { useStore } from '../../store/useStore';
 import './Timeline.css';
 
 function Timeline() {
-  const { timelineClips, clips, playhead, isPlaying, setInPoint, setOutPoint, inPoint, outPoint, setIsPlaying, setPlayhead, addToTimeline } = useStore();
+  const { timelineClips, clips, playhead, isPlaying, setInPoint, setOutPoint, inPoint, outPoint, setIsPlaying, setPlayhead, addToTimeline, updateTimelineClip } = useStore();
 
   const [{ isOver }, drop] = useDrop({
     accept: 'clip',
@@ -166,21 +166,13 @@ function Timeline() {
                   .filter(clip => clip.trackId === 1)
                   .map(clip => {
                     const sourceClip = clips.find(c => c.id === clip.clipId);
-                    const clipWidth = `${(clip.duration / 60) * 100}%`;
-                    const clipLeft = `${(clip.startTime / 60) * 100}%`;
-                    
                     return (
-                      <div 
-                        key={clip.id} 
-                        className="clip-block overlay"
-                        style={{ 
-                          left: clipLeft,
-                          width: clipWidth,
-                          position: 'absolute'
-                        }}
-                      >
-                        <span className="clip-name">{sourceClip?.fileName || 'Clip'}</span>
-                      </div>
+                      <TimelineClip
+                        key={clip.id}
+                        clip={clip}
+                        sourceClip={sourceClip}
+                        updateClip={updateTimelineClip}
+                      />
                     );
                   })
               )}

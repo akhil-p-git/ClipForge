@@ -1,49 +1,80 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useStore } from '../../store/useStore';
 
 function ExportDialog({ isOpen, onClose, onExport }) {
+  const { timelineClips } = useStore();
   const [outputPath, setOutputPath] = useState('');
   const [resolution, setResolution] = useState('source');
   const [quality, setQuality] = useState('high');
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  // Listen for export progress updates
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    
+    const handleProgress = (percent) => {
+      setProgress(percent);
+    };
+    
+    window.electronAPI.onExportProgress?.(handleProgress);
+    
+    return () => {
+      // Cleanup listener
+    };
+  }, []);
+
   if (!isOpen) return null;
+
+  const handleBrowseOutput = async () => {
+    if (!window.electronAPI) return;
+    
+    try {
+      const result = await window.electronAPI.showSaveDialog({
+        title: 'Export Video As',
+        defaultPath: 'output.mp4',
+        filters: [
+          { name: 'Video', extensions: ['mp4', 'mov', 'webm'] },
+          { name: 'All Files', extensions: ['*'] }
+        ]
+      });
+      
+      if (!result.canceled && result.filePath) {
+        setOutputPath(result.filePath);
+      }
+    } catch (error) {
+      console.error('Browse error:', error);
+    }
+  };
 
   const handleExport = async () => {
     if (!outputPath) {
-      // Auto-generate output path if not provided
-      const defaultPath = `${outputPath || 'output'}.mp4`;
-      setOutputPath(defaultPath);
+      alert('Please choose an output location');
+      return;
+    }
+    
+    if (timelineClips.length === 0) {
+      alert('No clips on timeline to export');
+      return;
     }
     
     setExporting(true);
     setProgress(0);
-    
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
-          return 100;
-        }
-        return prev + 5;
-      });
-    }, 100);
     
     try {
       const config = {
         outputPath,
         resolution,
         quality,
+        timelineClips, // Pass timeline clips for export
       };
       
       await onExport(config);
-      clearInterval(progressInterval);
       setExporting(false);
       setProgress(0);
+      alert('Export completed successfully!');
       onClose();
     } catch (error) {
-      clearInterval(progressInterval);
       console.error('Export error:', error);
       setExporting(false);
       setProgress(0);
@@ -62,16 +93,19 @@ function ExportDialog({ isOpen, onClose, onExport }) {
         <div className="export-dialog-content">
           <div className="form-group">
             <label>Output Location</label>
-            <input
-              type="text"
-              placeholder="Choose output path..."
-              value={outputPath}
-              onChange={(e) => setOutputPath(e.target.value)}
-              disabled={exporting}
-            />
-            <button className="browse-button" disabled={exporting}>
-              Browse...
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                placeholder="Choose output path..."
+                value={outputPath}
+                onChange={(e) => setOutputPath(e.target.value)}
+                disabled={exporting}
+                style={{ flex: 1 }}
+              />
+              <button className="browse-button" onClick={handleBrowseOutput} disabled={exporting}>
+                Browse...
+              </button>
+            </div>
           </div>
 
           <div className="form-group">
@@ -123,7 +157,7 @@ function ExportDialog({ isOpen, onClose, onExport }) {
             onClick={handleExport}
             disabled={exporting || !outputPath}
           >
-            {exporting ? 'Exporting...' : 'Export'}
+            {exporting ? `Exporting... ${progress}%` : 'Export'}
           </button>
         </div>
       </div>
