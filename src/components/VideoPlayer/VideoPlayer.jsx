@@ -13,84 +13,54 @@ function VideoPlayer() {
   // Temporarily removed console logs to reduce noise
 
   useEffect(() => {
-    console.log('=== Initialization useEffect running ===');
-    console.log('currentClip exists:', !!currentClip);
-    console.log('videoRef.current exists:', !!videoRef.current);
-    console.log('playerRef.current exists:', !!playerRef.current);
-    
-    // Always initialize Video.js if we have the element, even without a clip
-    if (!videoRef.current) {
-      console.log('Video element not available yet');
+    // Initialize Video.js once when video element exists
+    if (!videoRef.current || playerRef.current) {
       return;
     }
     
-    // Initialize Video.js only once
-    if (!playerRef.current) {
-      console.log('=== Initializing Video.js ===');
-      playerRef.current = videojs(videoRef.current, {
-        controls: true,
-        fluid: true,
-        responsive: true,
-        preload: 'auto',
-        playbackRates: [0.5, 1, 1.5, 2],
-        html5: {
-          nativeAudioTracks: false,
-          nativeVideoTracks: false,
-        },
-      });
+    console.log('Initializing Video.js player');
+    playerRef.current = videojs(videoRef.current, {
+      controls: true,
+      fluid: true,
+      responsive: true,
+      preload: 'auto',
+      playbackRates: [0.5, 1, 1.5, 2],
+      html5: {
+        nativeAudioTracks: false,
+        nativeVideoTracks: false,
+      },
+    });
+    
+    // Setup player event listeners (only once)
+    const player = playerRef.current;
 
-      console.log('Video.js player initialized successfully');
-      
-      // Setup player event listeners
-      const player = playerRef.current;
+    player.on('play', () => setIsPlaying(true));
+    player.on('pause', () => setIsPlaying(false));
+    player.on('ended', () => setIsPlaying(false));
 
-      // Sync play state with store
-      player.on('play', () => {
-        console.log('Video playing');
-        setIsPlaying(true);
-      });
-      player.on('pause', () => {
-        console.log('Video paused');
-        setIsPlaying(false);
-      });
-      player.on('ended', () => {
-        console.log('Video ended');
-        setIsPlaying(false);
-      });
-
-      // Update playhead as video plays
-      player.on('timeupdate', () => {
-        if (player.currentTime() !== undefined) {
-          setPlayhead(player.currentTime());
-        }
-      });
-
-      // Allow clicking on video to seek
-      player.on('click', () => {
-        player.play();
-      });
-    }
+    player.on('timeupdate', () => {
+      if (player.currentTime() !== undefined) {
+        setPlayhead(player.currentTime());
+      }
+    });
 
     // Cleanup
     return () => {
       if (playerRef.current) {
-        console.log('Disposing Video.js player');
         playerRef.current.dispose();
         playerRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only once on mount
+  }, [setPlayhead, setIsPlaying]);
 
   // Load video source when currentClip changes
   useEffect(() => {
-    console.log('=== Load video source useEffect ===');
-    console.log('playerRef.current:', !!playerRef.current);
-    console.log('currentClip:', currentClip);
+    if (!playerRef.current || !currentClip) {
+      return;
+    }
     
-    if (playerRef.current && currentClip) {
-      const player = playerRef.current;
-      console.log('Player and clip available, loading video');
+    const player = playerRef.current;
+    console.log('Loading video:', currentClip.fileName);
       
       // For Electron, we need to load the file:// path
       if (currentClip.filePath) {
