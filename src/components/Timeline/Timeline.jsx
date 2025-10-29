@@ -6,7 +6,7 @@ import TrimExportDialog from '../TrimExportDialog/TrimExportDialog';
 import './Timeline.css';
 
 function Timeline() {
-  const { timelineClips, clips, playhead, isPlaying, setInPoint, setOutPoint, inPoint, outPoint, setIsPlaying, setPlayhead, addToTimeline, updateTimelineClip, currentClip, removeTimelineClip } = useStore();
+  const { timelineClips, clips, playhead, isPlaying, setInPoint, setOutPoint, inPoint, outPoint, setIsPlaying, setPlayhead, addToTimeline, updateTimelineClip, currentClip, removeTimelineClip, splitTimelineClip } = useStore();
   const [showTrimDialog, setShowTrimDialog] = useState(false);
 
   const [{ isOver }, drop] = useDrop({
@@ -37,7 +37,11 @@ function Timeline() {
   };
 
   // Get duration from currentClip, default to 60 seconds if no clip
-  const timelineDuration = currentClip?.duration ? Math.ceil(currentClip.duration) : 60;
+  // Handle NaN/undefined cases
+  const clipDuration = currentClip?.duration;
+  const timelineDuration = (clipDuration && !isNaN(clipDuration) && clipDuration > 0) 
+    ? Math.ceil(clipDuration) 
+    : 60;
   
   // Generate 10 equal ruler marks
   const rulerMarks = Array.from({ length: 11 }, (_, i) => i * (timelineDuration / 10));
@@ -297,6 +301,17 @@ function Timeline() {
         
         <div className="trim-shortcuts">
           <span className="shortcut-hint">Press <kbd>I</kbd> for In, <kbd>O</kbd> for Out</span>
+          <button
+            className="control-button"
+            onClick={() => {
+              splitTimelineClip(playhead);
+              console.log('Split clip at:', playhead);
+            }}
+            style={{ marginLeft: '12px', background: '#f59e0b', color: 'white' }}
+            title="Split at playhead"
+          >
+            Split
+          </button>
           {inPoint !== null && outPoint !== null && (
             <button 
               className="control-button" 

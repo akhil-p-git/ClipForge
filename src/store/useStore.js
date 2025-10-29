@@ -60,5 +60,48 @@ export const useStore = create((set) => ({
   setOutPoint: (time) => set({ outPoint: time }),
   clearTrimPoints: () => set({ inPoint: null, outPoint: null }),
   clearTimelineClips: () => set({ timelineClips: [] }),
+  
+  // Split clip at playhead position
+  splitTimelineClip: (splitTime) => set((state) => {
+    const timelineClips = state.timelineClips;
+    
+    // Find clip at split time
+    const clipToSplit = timelineClips.find(clip => {
+      const clipStart = clip.startTime;
+      const clipEnd = clip.startTime + clip.duration;
+      return splitTime >= clipStart && splitTime <= clipEnd;
+    });
+    
+    if (!clipToSplit) return { timelineClips };
+    
+    const clipStart = clipToSplit.startTime;
+    const clipDuration = clipToSplit.duration;
+    const splitPosition = splitTime - clipStart;
+    
+    // Update existing clip to end at split point
+    const leftClip = {
+      ...clipToSplit,
+      id: clipToSplit.id,
+      duration: splitPosition,
+    };
+    
+    // Create new clip from split point
+    const rightClip = {
+      id: `timeline-${Date.now()}-${Math.random()}`,
+      clipId: clipToSplit.clipId,
+      trackId: clipToSplit.trackId,
+      startTime: splitTime,
+      duration: clipDuration - splitPosition,
+      trimStart: (clipToSplit.trimStart || 0) + splitPosition,
+      trimEnd: clipToSplit.trimEnd || 0,
+    };
+    
+    return {
+      timelineClips: timelineClips
+        .map(clip => clip.id === clipToSplit.id ? leftClip : clip)
+        .concat(rightClip)
+        .sort((a, b) => a.startTime - b.startTime)
+    };
+  }),
 }));
 

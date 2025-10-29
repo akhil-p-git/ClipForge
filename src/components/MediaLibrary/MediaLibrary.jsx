@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import MediaItem from './MediaItem';
+import TranscriptionPanel from '../TranscriptionPanel/TranscriptionPanel';
+import ScreenRecorder from '../ScreenRecorder/ScreenRecorder';
+import WebcamRecorder from '../WebcamRecorder/WebcamRecorder';
 import './MediaLibrary.css';
 
 function MediaLibrary() {
   const { clips, addClip, setCurrentClip, currentClip } = useStore();
   const [isDragging, setIsDragging] = useState(false);
+  const [showTranscriptionPanel, setShowTranscriptionPanel] = useState(false);
+  const [transcriptionClip, setTranscriptionClip] = useState(null);
+  const [showScreenRecorder, setShowScreenRecorder] = useState(false);
+  const [showWebcamRecorder, setShowWebcamRecorder] = useState(false);
 
   const handleImportClick = async () => {
     console.log('Import button clicked');
@@ -144,9 +151,7 @@ function MediaLibrary() {
     console.log('Clip data:', clip);
     console.log('Setting current clip to:', clip.id);
     
-    // Clear timeline clips when selecting a new clip
-    useStore.getState().clearTimelineClips();
-    
+    // Set current clip for video preview
     setCurrentClip(clip);
     console.log('Current clip set in store');
   };
@@ -162,11 +167,30 @@ function MediaLibrary() {
     useStore.getState().removeClip(clipId);
   };
 
+  const handleTranscribeClick = (clip) => {
+    setTranscriptionClip(clip);
+    setShowTranscriptionPanel(true);
+  };
+
   return (
     <div className="media-library">
       <div className="media-library-header">
         <h2 className="section-title">Media Library</h2>
         <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            className="record-button-header"
+            onClick={() => setShowScreenRecorder(true)}
+            title="Record Screen"
+          >
+            📹 Screen
+          </button>
+          <button 
+            className="webcam-button-header"
+            onClick={() => setShowWebcamRecorder(true)}
+            title="Record Webcam"
+          >
+            📷 Webcam
+          </button>
           <button 
             className="import-button"
             onClick={handleImportClick}
@@ -210,6 +234,7 @@ function MediaLibrary() {
                 isSelected={currentClip?.id === clip.id}
                 onClick={() => handleClipClick(clip)}
                 onRemove={handleRemoveClip}
+                onTranscribe={() => handleTranscribeClick(clip)}
               />
             ))}
           </div>
@@ -220,6 +245,29 @@ function MediaLibrary() {
         <div className="media-library-footer">
           <span className="count-text">{clips.length} {clips.length === 1 ? 'clip' : 'clips'}</span>
         </div>
+      )}
+
+      {showTranscriptionPanel && transcriptionClip && (
+        <TranscriptionPanel
+          videoPath={transcriptionClip.filePath}
+          fileName={transcriptionClip.fileName}
+          onClose={() => {
+            setShowTranscriptionPanel(false);
+            setTranscriptionClip(null);
+          }}
+        />
+      )}
+
+      {showScreenRecorder && (
+        <ScreenRecorder
+          onClose={() => setShowScreenRecorder(false)}
+        />
+      )}
+
+      {showWebcamRecorder && (
+        <WebcamRecorder
+          onClose={() => setShowWebcamRecorder(false)}
+        />
       )}
     </div>
   );

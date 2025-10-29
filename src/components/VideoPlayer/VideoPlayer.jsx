@@ -12,20 +12,128 @@ function VideoPlayer() {
 
   // Load video source when currentClip changes
   useEffect(() => {
-    if (!videoRef.current || !currentClip) return;
-    
-    const video = videoRef.current;
-    console.log('Loading video:', currentClip.fileName);
-    
-    // For Electron, we need to load the file:// path
-    let videoSrc = currentClip.filePath;
-    if (!videoSrc.startsWith('file://')) {
-      videoSrc = `file://${videoSrc}`;
+    if (!videoRef.current || !currentClip) {
+      // Ensure video element is cleared when no clip
+      if (videoRef.current) {
+        videoRef.current.src = '';
+        videoRef.current.load();
+      }
+      return;
     }
     
-    console.log('Setting video source:', videoSrc);
-    video.src = videoSrc;
-    video.load();
+    // Validate clip has required properties
+    if (!currentClip.filePath || !currentClip.fileName) {
+      console.error('Invalid clip:', currentClip);
+      return;
+    }
+    
+    const video = videoRef.current;
+    try {
+      console.log('Loading video:', currentClip.fileName);
+      console.log('File path:', currentClip.filePath);
+      console.log('File size:', currentClip.fileSize || 0);
+      
+      // Check if file size is valid
+      if (currentClip.fileSize === 0) {
+        console.warn('Warning: File size is 0, video may not load:', currentClip.fileName);
+      }
+      
+      // For Electron, we need to load the file:// path
+      let videoSrc = currentClip.filePath;
+      if (!videoSrc || typeof videoSrc !== 'string') {
+        console.error('Invalid file path:', videoSrc);
+        return;
+      }
+      
+      if (!videoSrc.startsWith('file://')) {
+        videoSrc = `file://${videoSrc}`;
+      }
+      
+      console.log('Setting video source:', videoSrc);
+      console.log('Clip duration:', currentClip.duration || 0, 'seconds');
+      
+      // Ensure audio is enabled
+      video.muted = false;
+      video.volume = 1.0;
+      
+      // Safely set video source
+      try {
+        video.src = videoSrc;
+        video.load();
+      } catch (loadErr) {
+        console.error('Error loading video:', loadErr);
+        // Clear video on error to prevent crashes
+        video.src = '';
+        return;
+      }
+    } catch (err) {
+      console.error('Error in video loading useEffect:', err);
+      // Clear video element on any error
+      if (videoRef.current) {
+        try {
+          videoRef.current.src = '';
+        } catch (clearErr) {
+          console.error('Error clearing video:', clearErr);
+        }
+      }
+      return;
+    }
+    
+    // Handle duration issues (Infinity, NaN, or 0)
+    const handleLoadedMetadata = () => {
+      const videoDuration = video.duration;
+      console.log('Video metadata loaded - video.duration:', videoDuration);
+      console.log('Clip duration:', currentClip.duration);
+      
+      // If video duration is invalid, use clip's stored duration
+      if (!videoDuration || !isFinite(videoDuration) || videoDuration <= 0) {
+        if (currentClip.duration && currentClip.duration > 0) {
+          console.warn('Video duration invalid, using clip duration:', currentClip.duration);
+          // Override the duration property for display purposes
+          Object.defineProperty(video, 'duration', {
+            get: () => currentClip.duration,
+            configurable: true
+          });
+        }
+      }
+      
+      // Log audio tracks
+      console.log('Video has audio tracks:', video.audioTracks?.length || 'unknown');
+      if (video.audioTracks && video.audioTracks.length > 0) {
+        console.log('Audio tracks:', Array.from(video.audioTracks).map(t => ({
+          enabled: t.enabled,
+          kind: t.kind,
+          label: t.label
+        })));
+      }
+    };
+    
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    
+    // Add error handler
+    const handleError = (e) => {
+      console.error('Video load error:', e);
+      console.error('Error details:', video.error);
+      if (video.error) {
+        const error = video.error;
+        let errorMsg = 'Failed to load video';
+        if (error.code === error.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+          errorMsg = 'Video format not supported';
+        } else if (error.code === error.MEDIA_ERR_NETWORK) {
+          errorMsg = 'Network error loading video';
+        } else if (error.code === error.MEDIA_ERR_DECODE) {
+          errorMsg = 'Video decode error';
+        }
+        console.error(errorMsg);
+      }
+    };
+    
+    video.addEventListener('error', handleError);
+    
+    return () => {
+      video.removeEventListener('error', handleError);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
   }, [currentClip]);
 
   // Sync playhead when it changes externally (e.g., from timeline)
@@ -137,6 +245,9 @@ function VideoPlayer() {
           ref={videoRef}
           className="native-video-player"
           controls
+          muted={false}
+          autoPlay={false}
+          playsInline
         />
       )}
     </div>

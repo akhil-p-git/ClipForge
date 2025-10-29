@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { useDrag } from 'react-dnd';
 
-function MediaItem({ clip, onClick, isSelected = false, onRemove }) {
+function MediaItem({ clip, onClick, isSelected = false, onRemove, onTranscribe }) {
   const mouseDownPosRef = useRef(null);
   
   const [{ isDragging }, drag] = useDrag({
@@ -75,6 +75,13 @@ function MediaItem({ clip, onClick, isSelected = false, onRemove }) {
     }
   };
 
+  const handleTranscribe = (e) => {
+    e.stopPropagation(); // Prevent triggering click
+    if (onTranscribe) {
+      onTranscribe();
+    }
+  };
+
   return (
     <div 
       ref={drag}
@@ -113,15 +120,26 @@ function MediaItem({ clip, onClick, isSelected = false, onRemove }) {
       )}
     </div>
     
-    {onRemove && (
-      <button 
-        className="media-item-remove"
-        onClick={handleRemove}
-        title="Remove from library"
-      >
-        ×
-      </button>
-    )}
+    <div className="media-item-actions">
+      {onTranscribe && (
+        <button 
+          className="media-item-transcribe"
+          onClick={handleTranscribe}
+          title="Transcribe video"
+        >
+          📝
+        </button>
+      )}
+      {onRemove && (
+        <button 
+          className="media-item-remove"
+          onClick={handleRemove}
+          title="Remove from library"
+        >
+          ×
+        </button>
+      )}
+    </div>
   </div>
   );
 }
