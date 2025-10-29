@@ -25,6 +25,12 @@ function ScreenRecorder({ onClose }) {
   const audioContextRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
+  const canvasRef = useRef(null);
+  const screenVideoRef = useRef(null);
+  const webcamVideoRef = useRef(null);
+  const animationFrameRef = useRef(null);
+  const previewWebcamRef = useRef(null);
+  const preWebcamStreamRef = useRef(null);
 
   useEffect(() => {
     loadSources();
@@ -32,6 +38,9 @@ function ScreenRecorder({ onClose }) {
     loadWebcamDevices();
     return () => {
       // Cleanup on unmount
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
@@ -43,6 +52,9 @@ function ScreenRecorder({ onClose }) {
       }
       if (audioContextRef.current) {
         audioContextRef.current.close();
+      }
+      if (preWebcamStreamRef.current) {
+        preWebcamStreamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
@@ -100,6 +112,49 @@ function ScreenRecorder({ onClose }) {
       }
     };
   }, [isRecording]);
+
+  // Start webcam preview when enabled (but not recording)
+  useEffect(() => {
+    const startWebcamPreview = async () => {
+      if (includeWebcam && selectedWebcam && !isRecording) {
+        try {
+          const webcamConstraints = {
+            video: {
+              deviceId: { exact: selectedWebcam },
+              width: { ideal: 320 },
+              height: { ideal: 240 }
+            }
+          };
+          const webcamStream = await navigator.mediaDevices.getUserMedia(webcamConstraints);
+          preWebcamStreamRef.current = webcamStream;
+
+          if (previewWebcamRef.current) {
+            previewWebcamRef.current.srcObject = webcamStream;
+          }
+        } catch (err) {
+          console.warn('Could not start webcam preview:', err);
+        }
+      } else {
+        // Stop preview when disabled
+        if (preWebcamStreamRef.current) {
+          preWebcamStreamRef.current.getTracks().forEach(track => track.stop());
+          preWebcamStreamRef.current = null;
+        }
+        if (previewWebcamRef.current) {
+          previewWebcamRef.current.srcObject = null;
+        }
+      }
+    };
+
+    startWebcamPreview();
+
+    return () => {
+      if (preWebcamStreamRef.current) {
+        preWebcamStreamRef.current.getTracks().forEach(track => track.stop());
+        preWebcamStreamRef.current = null;
+      }
+    };
+  }, [includeWebcam, selectedWebcam, isRecording]);
 
   const loadSources = async () => {
     try {
@@ -200,54 +255,13 @@ function ScreenRecorder({ onClose }) {
         throw new Error(`Screen capture failed: ${err.message}`);
       }
 
-      // Try to capture system audio separately if requested
-      // This prevents video track muting that occurs when requesting audio+video together
+      // System audio capture temporarily disabled - causes crashes
+      // TODO: Fix system audio capture stability before re-enabling
       let systemAudioCaptured = false;
       if (includeSystemAudio) {
-        try {
-          console.log('Attempting to capture system audio separately...');
-          const systemAudioConstraints = {
-            audio: {
-              mandatory: {
-                chromeMediaSource: 'desktop',
-                chromeMediaSourceId: selectedSource.id
-              }
-            }
-          };
-          const systemAudioStream = await navigator.mediaDevices.getUserMedia(systemAudioConstraints);
-          const systemAudioTracks = systemAudioStream.getAudioTracks();
-          
-          if (systemAudioTracks.length > 0) {
-            // Verify video track is still OK before adding system audio
-            const videoTrackCheck = screenStream.getVideoTracks()[0];
-            if (videoTrackCheck && !videoTrackCheck.muted && videoTrackCheck.readyState === 'live') {
-              // Add system audio track to screenStream
-              systemAudioTracks.forEach(track => {
-                screenStream.addTrack(track);
-                console.log('Added system audio track:', track.id);
-              });
-              systemAudioCaptured = true;
-              console.log('System audio captured and added successfully');
-              
-              // Verify video track is STILL OK after adding
-              const videoTrackAfterAudio = screenStream.getVideoTracks()[0];
-              if (videoTrackAfterAudio.muted || videoTrackAfterAudio.readyState !== 'live') {
-                console.error('Video track became muted/inactive after adding system audio! Removing it...');
-                // Remove the system audio track we just added
-                systemAudioTracks.forEach(track => screenStream.removeTrack(track));
-                systemAudioCaptured = false;
-                console.warn('System audio removed - it was muting the video track');
-              }
-            } else {
-              console.warn('Video track not in good state - skipping system audio addition');
-            }
-          } else {
-            console.warn('System audio stream created but no tracks present');
-          }
-        } catch (audioErr) {
-          console.warn('Could not capture system audio separately:', audioErr);
-          systemAudioCaptured = false;
-        }
+        console.warn('System audio is temporarily disabled - it causes app crashes');
+        console.warn('Please use microphone for audio recording instead');
+        // Don't throw error - just continue without system audio
       }
 
       // Capture microphone separately if requested
@@ -297,9 +311,8 @@ function ScreenRecorder({ onClose }) {
       // screenStream is ready - microphone already added above if requested
 
       // Add webcam for picture-in-picture if requested
-      // NOTE: MediaRecorder doesn't support multiple video tracks
-      // For now, we'll just capture the webcam stream separately but won't add it to the recording stream
-      // TODO: Implement proper picture-in-picture using Canvas API to composite video
+      // Use Canvas API to composite webcam feed onto screen recording
+      let stream = screenStream;
       if (includeWebcam && selectedWebcam) {
         try {
           const webcamConstraints = {
@@ -311,15 +324,92 @@ function ScreenRecorder({ onClose }) {
           };
           const webcamStream = await navigator.mediaDevices.getUserMedia(webcamConstraints);
           webcamStreamRef.current = webcamStream;
-          // DON'T add webcam video track to the main stream - MediaRecorder doesn't support multiple video tracks
-          // This would cause empty chunks. Picture-in-picture needs to be done with Canvas compositing instead.
-          console.warn('Webcam captured but not added to recording stream (MediaRecorder limitation - needs Canvas compositing)');
+
+          // Show webcam preview during recording
+          if (previewWebcamRef.current) {
+            previewWebcamRef.current.srcObject = webcamStream;
+          }
+
+          // Create canvas to composite screen + webcam
+          const canvas = document.createElement('canvas');
+          canvasRef.current = canvas;
+
+          // Create video elements to display the streams
+          const screenVideo = document.createElement('video');
+          const webcamVideo = document.createElement('video');
+          screenVideoRef.current = screenVideo;
+          webcamVideoRef.current = webcamVideo;
+
+          // Set up screen video
+          screenVideo.srcObject = screenStream;
+          screenVideo.autoplay = true;
+          screenVideo.muted = true;
+
+          // Set up webcam video
+          webcamVideo.srcObject = webcamStream;
+          webcamVideo.autoplay = true;
+          webcamVideo.muted = true;
+
+          // Wait for videos to load metadata
+          await Promise.all([
+            new Promise(resolve => screenVideo.onloadedmetadata = resolve),
+            new Promise(resolve => webcamVideo.onloadedmetadata = resolve)
+          ]);
+
+          // Play both videos
+          await screenVideo.play();
+          await webcamVideo.play();
+
+          // Set canvas dimensions to match screen video
+          canvas.width = screenVideo.videoWidth;
+          canvas.height = screenVideo.videoHeight;
+
+          const ctx = canvas.getContext('2d');
+
+          // Calculate webcam dimensions (20% of screen width, maintain aspect ratio)
+          const webcamWidth = canvas.width * 0.2;
+          const webcamHeight = (webcamVideo.videoHeight / webcamVideo.videoWidth) * webcamWidth;
+
+          // Position webcam in bottom-right corner with 20px padding
+          const webcamX = canvas.width - webcamWidth - 20;
+          const webcamY = canvas.height - webcamHeight - 20;
+
+          // Draw composite frame
+          const drawFrame = () => {
+            if (!canvasRef.current) return; // Stop if canvas was cleaned up
+
+            // Draw screen
+            ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height);
+
+            // Draw webcam with border
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(webcamX - 5, webcamY - 5, webcamWidth + 10, webcamHeight + 10);
+            ctx.drawImage(webcamVideo, webcamX, webcamY, webcamWidth, webcamHeight);
+
+            animationFrameRef.current = requestAnimationFrame(drawFrame);
+          };
+
+          drawFrame();
+
+          // Create stream from canvas with audio from screenStream
+          const canvasStream = canvas.captureStream(30); // 30fps
+          const compositeStream = new MediaStream();
+
+          // Add video track from canvas
+          canvasStream.getVideoTracks().forEach(track => compositeStream.addTrack(track));
+
+          // Add audio tracks from screen stream (includes microphone if enabled)
+          screenStream.getAudioTracks().forEach(track => compositeStream.addTrack(track));
+
+          stream = compositeStream;
+          console.log('Picture-in-picture webcam composited successfully');
         } catch (webcamErr) {
-          console.warn('Could not capture webcam:', webcamErr);
+          console.warn('Could not add webcam PiP:', webcamErr);
+          // Continue with screen-only recording
+          stream = screenStream;
         }
       }
 
-      let stream = screenStream;
       videoStreamRef.current = stream;
       streamRef.current = stream;
 
@@ -1297,10 +1387,27 @@ function ScreenRecorder({ onClose }) {
       const recorder = mediaRecorderRef.current;
       console.log('Stopping recording, state:', recorder.state);
       console.log('Current recording time:', recordingTime, 'seconds');
-      
+
       // Capture the recording duration BEFORE stopping (so timer doesn't reset it)
       const capturedDuration = recordingTime;
-      
+
+      // Stop animation frame for canvas compositing
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+
+      // Clean up webcam stream
+      if (webcamStreamRef.current) {
+        webcamStreamRef.current.getTracks().forEach(track => track.stop());
+        webcamStreamRef.current = null;
+      }
+
+      // Clear webcam preview
+      if (previewWebcamRef.current) {
+        previewWebcamRef.current.srcObject = null;
+      }
+
       if (recorder.state === 'recording') {
         // Request any pending data
         try {
@@ -1308,10 +1415,10 @@ function ScreenRecorder({ onClose }) {
         } catch (err) {
           console.warn('Error requesting data:', err);
         }
-        
+
         // Store the captured duration on the recorder so onstop can access it
         recorder._capturedDuration = capturedDuration;
-        
+
         // Wait a moment then stop
         setTimeout(() => {
           try {
@@ -1324,8 +1431,13 @@ function ScreenRecorder({ onClose }) {
         recorder._capturedDuration = capturedDuration;
         recorder.stop();
       }
-      
+
       setIsRecording(false);
+
+      // Clean up canvas and video elements
+      canvasRef.current = null;
+      screenVideoRef.current = null;
+      webcamVideoRef.current = null;
     }
   };
 
@@ -1361,81 +1473,95 @@ function ScreenRecorder({ onClose }) {
           </label>
         </div>
 
-        <div className="recorder-options">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={includeSystemAudio}
-              onChange={(e) => setIncludeSystemAudio(e.target.checked)}
-              disabled={isRecording}
-            />
-            <span>Include system audio</span>
-          </label>
+        <div className="recorder-options-wrapper">
+          <div className="recorder-options">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={includeSystemAudio}
+                onChange={(e) => setIncludeSystemAudio(e.target.checked)}
+                disabled={isRecording}
+              />
+              <span>Include system audio</span>
+            </label>
 
-          {audioInputDevices.length > 0 && (
-            <>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={includeMicrophone}
-                  onChange={(e) => setIncludeMicrophone(e.target.checked)}
-                  disabled={isRecording}
-                />
-                <span>Include microphone</span>
-              </label>
-              {includeMicrophone && (
-                <label>
-                  <span>Microphone:</span>
-                  <select
-                    value={selectedAudioInput}
-                    onChange={(e) => setSelectedAudioInput(e.target.value)}
+            {audioInputDevices.length > 0 && (
+              <>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={includeMicrophone}
+                    onChange={(e) => setIncludeMicrophone(e.target.checked)}
                     disabled={isRecording}
-                  >
-                    {audioInputDevices.map(device => (
-                      <option key={device.deviceId} value={device.deviceId}>
-                        {device.label || `Microphone ${audioInputDevices.indexOf(device) + 1}`}
-                      </option>
-                    ))}
-                  </select>
+                  />
+                  <span>Include microphone</span>
                 </label>
-              )}
-            </>
-          )}
+                {includeMicrophone && (
+                  <label>
+                    <span>Microphone:</span>
+                    <select
+                      value={selectedAudioInput}
+                      onChange={(e) => setSelectedAudioInput(e.target.value)}
+                      disabled={isRecording}
+                    >
+                      {audioInputDevices.map(device => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Microphone ${audioInputDevices.indexOf(device) + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </>
+            )}
 
-          {webcamDevices.length > 0 && (
-            <>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={includeWebcam}
-                  onChange={(e) => setIncludeWebcam(e.target.checked)}
-                  disabled={isRecording}
-                />
-                <span>Include webcam (picture-in-picture)</span>
-              </label>
-              {includeWebcam && (
-                <label>
-                  <span>Webcam:</span>
-                  <select
-                    value={selectedWebcam}
-                    onChange={(e) => setSelectedWebcam(e.target.value)}
+            {webcamDevices.length > 0 && (
+              <>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={includeWebcam}
+                    onChange={(e) => setIncludeWebcam(e.target.checked)}
                     disabled={isRecording}
-                  >
-                    {webcamDevices.map(device => (
-                      <option key={device.deviceId} value={device.deviceId}>
-                        {device.label || `Camera ${webcamDevices.indexOf(device) + 1}`}
-                      </option>
-                    ))}
-                  </select>
+                  />
+                  <span>Include webcam (picture-in-picture)</span>
                 </label>
-              )}
-            </>
+                {includeWebcam && (
+                  <label>
+                    <span>Webcam:</span>
+                    <select
+                      value={selectedWebcam}
+                      onChange={(e) => setSelectedWebcam(e.target.value)}
+                      disabled={isRecording}
+                    >
+                      {webcamDevices.map(device => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Camera ${webcamDevices.indexOf(device) + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Webcam preview - shown when webcam is enabled */}
+          {includeWebcam && (
+            <div className="webcam-preview-container">
+              <video
+                ref={previewWebcamRef}
+                autoPlay
+                muted
+                playsInline
+              />
+            </div>
           )}
         </div>
 
         <div className="recorder-controls">
           {!isRecording ? (
-            <button 
+            <button
               className="record-button start"
               onClick={startRecording}
               disabled={!selectedSource}
@@ -1448,7 +1574,7 @@ function ScreenRecorder({ onClose }) {
                 <span className="recording-dot"></span>
                 <span>Recording: {formatTime(recordingTime)}</span>
               </div>
-              <button 
+              <button
                 className="record-button stop"
                 onClick={stopRecording}
               >
@@ -1457,6 +1583,7 @@ function ScreenRecorder({ onClose }) {
             </>
           )}
         </div>
+
       </div>
     </div>
   );
