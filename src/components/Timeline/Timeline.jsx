@@ -1,11 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDrop, useDrag } from 'react-dnd';
 import { useStore } from '../../store/useStore';
 import TimelineClip from './TimelineClip';
+import TrimExportDialog from '../TrimExportDialog/TrimExportDialog';
 import './Timeline.css';
 
 function Timeline() {
-  const { timelineClips, clips, playhead, isPlaying, setInPoint, setOutPoint, inPoint, outPoint, setIsPlaying, setPlayhead, addToTimeline, updateTimelineClip } = useStore();
+  const { timelineClips, clips, playhead, isPlaying, setInPoint, setOutPoint, inPoint, outPoint, setIsPlaying, setPlayhead, addToTimeline, updateTimelineClip, currentClip, removeTimelineClip } = useStore();
+  const [showTrimDialog, setShowTrimDialog] = useState(false);
 
   const [{ isOver }, drop] = useDrop({
     accept: 'clip',
@@ -34,28 +36,13 @@ function Timeline() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Calculate timeline duration based on clips
-  const calculateTimelineDuration = () => {
-    if (timelineClips.length === 0) return 60; // Default 60 seconds
-    
-    // Find the furthest end time of all clips
-    const maxEnd = Math.max(
-      ...timelineClips.map(clip => clip.startTime + clip.duration)
-    );
-    
-    // Add some padding and round up to nearest 10 seconds
-    return Math.ceil((maxEnd + 10) / 10) * 10;
-  };
-
-  const timelineDuration = calculateTimelineDuration();
+  // Get duration from currentClip, default to 60 seconds if no clip
+  const timelineDuration = currentClip?.duration ? Math.ceil(currentClip.duration) : 60;
   
-  // Generate ruler marks
-  const rulerMarks = [];
-  for (let i = 0; i <= timelineDuration; i += 10) {
-    rulerMarks.push(i);
-  }
+  // Generate 10 equal ruler marks
+  const rulerMarks = Array.from({ length: 11 }, (_, i) => i * (timelineDuration / 10));
 
-  const handleApplyTrim = () => {
+  const handleApplyTrim = async () => {
     if (inPoint === null || outPoint === null) {
       alert('Please set both In and Out points first (press I for In, O for Out)');
       return;
@@ -66,20 +53,65 @@ function Timeline() {
       return;
     }
 
-    // Apply trim to the first clip on the timeline
-    if (timelineClips.length > 0) {
-      const clipToTrim = timelineClips.find(clip => clip.trackId === 0);
-      if (clipToTrim) {
-        updateTimelineClip(clipToTrim.id, {
-          trimStart: inPoint,
-          trimEnd: outPoint,
-          duration: outPoint - inPoint
-        });
-        alert(`Trim applied! Video will play from ${formatTime(inPoint)} to ${formatTime(outPoint)}`);
-        console.log('Trim applied:', { inPoint, outPoint, clipId: clipToTrim.id });
+    if (!currentClip) {
+      alert('No video selected');
+      return;
+    }
+
+    setShowTrimDialog(true);
+  };
+
+  const handleTrimExport = async (filename, format) => {
+    if (!window.electronAPI) {
+      alert('Trim export is only available in Electron');
+      return;
+    }
+
+    try {
+      console.log('Exporting trimmed clip:', { inPoint, outPoint, clipId: currentClip.id, filename, format });
+      
+      // Generate output filename in same directory as input
+      const inputDir = currentClip.filePath.substring(0, currentClip.filePath.lastIndexOf('/'));
+      const outputFileName = `${inputDir}/${filename}.${format}`;
+      
+      // Call export with trim points
+      const result = await window.electronAPI.exportVideo({
+        inputPath: currentClip.filePath,
+        outputPath: outputFileName,
+        startTime: inPoint,
+        endTime: outPoint,
+      });
+      
+      if (result.success) {
+        // Load the exported video into the media library
+        const metadata = await window.electronAPI.getVideoMetadata(result.outputPath);
+        
+        const newClip = {
+          id: `clip-${Date.now()}-${Math.random()}`,
+          filePath: result.outputPath,
+          fileName: result.outputPath.split('/').pop() || result.outputPath.split('\\').pop(),
+          duration: metadata.duration,
+          resolution: metadata.resolution,
+          fileSize: metadata.fileSize,
+          format: result.outputPath.split('.').pop(),
+          hasAudio: metadata.hasAudio,
+          createdAt: new Date(),
+        };
+        
+        useStore.getState().addClip(newClip);
+        useStore.getState().setCurrentClip(newClip);
+        
+        // Clear trim points after successful export
+        useStore.getState().setInPoint(null);
+        useStore.getState().setOutPoint(null);
+        
+        alert(`Trimmed video exported and added to library: ${newClip.fileName}`);
+      } else {
+        alert(`Export failed: ${result.message || 'Unknown error'}`);
       }
-    } else {
-      alert('No clips on the timeline to trim');
+    } catch (error) {
+      console.error('Trim export error:', error);
+      alert(`Export failed: ${error.message}`);
     }
   };
 
@@ -115,6 +147,7 @@ function Timeline() {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [playhead, setInPoint, setOutPoint, isPlaying, setIsPlaying]);
 
+
   return (
     <div className="timeline-container" tabIndex={0}>
       <div className="timeline-header">
@@ -130,12 +163,20 @@ function Timeline() {
         {/* Time Ruler */}
         <div className="timeline-ruler">
           <div className="ruler-marks">
-            {rulerMarks.map(second => (
-              <div key={second} className="ruler-mark">
-                <span className="mark-time">{formatTime(second)}</span>
+            {Array.from({ length: 11 }, (_, i) => {
+            const second = i * (timelineDuration / 10);
+            const percent = (i / 10) * 100;
+            const isFirst = i === 0;
+            const isLast = i === 10;
+            return (
+              <div key={second} className="ruler-mark" style={{ left: `${percent}%` }}>
+                <span className={`mark-time ${isFirst ? 'align-left' : isLast ? 'align-right' : 'align-center'}`}>
+                  {formatTime(second)}
+                </span>
                 <div className="mark-line"></div>
               </div>
-            ))}
+            );
+          })}
           </div>
         </div>
 
@@ -179,16 +220,20 @@ function Timeline() {
           <div className="timeline-tracks" ref={drop}>
           {/* Track 1: Main Video */}
           <div className="timeline-track">
-            <div className="track-label">Track 1</div>
             <div 
-              className="track-content"
+              className="track-content track-content-no-label"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const x = e.clientX - rect.left;
                 const percent = (x / rect.width) * 100;
-                const newTime = (percent / 100) * timelineDuration;
+                const newTime = Math.max(0, Math.min((percent / 100) * timelineDuration, timelineDuration));
                 setPlayhead(newTime);
                 console.log('Clicked timeline at:', newTime);
+                
+                // If video is playing, pause it when seeking
+                if (isPlaying) {
+                  setIsPlaying(false);
+                }
               }}
             >
               {timelineClips.filter(clip => clip.trackId === 0).length === 0 ? (
@@ -204,6 +249,7 @@ function Timeline() {
                         clip={clip}
                         sourceClip={sourceClip}
                         updateClip={updateTimelineClip}
+                        onRemove={removeTimelineClip}
                       />
                     );
                   })
@@ -228,6 +274,7 @@ function Timeline() {
                         clip={clip}
                         sourceClip={sourceClip}
                         updateClip={updateTimelineClip}
+                        onRemove={removeTimelineClip}
                       />
                     );
                   })
@@ -244,20 +291,9 @@ function Timeline() {
           {isPlaying ? '⏸' : '▶'}
         </button>
         <button className="control-button" title="Stop" onClick={() => { setIsPlaying(false); setPlayhead(0); }}>⏹</button>
-        <div className="time-display">
-          {formatTime(playhead)} / --:--
-        </div>
-        
-        {/* Video Info */}
-        {clips.length > 0 && (
-          <div className="video-info-display">
-            <span className="video-name">{clips[0]?.fileName || 'No video'}</span>
-            {clips[0]?.resolution && clips[0].resolution !== 'Unknown' && (
-              <span className="info-badge">{clips[0].resolution}</span>
-            )}
-            <span className="info-badge">{clips[0]?.format?.toUpperCase() || 'VID'}</span>
+          <div className="time-display">
+            {formatTime(playhead)} / {formatTime(timelineDuration)}
           </div>
-        )}
         
         <div className="trim-shortcuts">
           <span className="shortcut-hint">Press <kbd>I</kbd> for In, <kbd>O</kbd> for Out</span>
@@ -273,6 +309,15 @@ function Timeline() {
           )}
         </div>
       </div>
+
+      {showTrimDialog && (
+        <TrimExportDialog
+          onClose={() => setShowTrimDialog(false)}
+          onExport={handleTrimExport}
+          inPoint={inPoint}
+          outPoint={outPoint}
+        />
+      )}
     </div>
   );
 }

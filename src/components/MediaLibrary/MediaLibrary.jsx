@@ -143,8 +143,23 @@ function MediaLibrary() {
     console.log('=== CLIP CLICKED ===');
     console.log('Clip data:', clip);
     console.log('Setting current clip to:', clip.id);
+    
+    // Clear timeline clips when selecting a new clip
+    useStore.getState().clearTimelineClips();
+    
     setCurrentClip(clip);
     console.log('Current clip set in store');
+  };
+
+  const handleRemoveClip = (clipId) => {
+    // If we're removing the currently selected clip, clear it
+    if (currentClip?.id === clipId) {
+      setCurrentClip(null);
+      useStore.getState().setPlayhead(0);
+      useStore.getState().setIsPlaying(false);
+      useStore.getState().clearTrimPoints();
+    }
+    useStore.getState().removeClip(clipId);
   };
 
   return (
@@ -194,6 +209,7 @@ function MediaLibrary() {
                 clip={clip} 
                 isSelected={currentClip?.id === clip.id}
                 onClick={() => handleClipClick(clip)}
+                onRemove={handleRemoveClip}
               />
             ))}
           </div>

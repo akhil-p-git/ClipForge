@@ -1,151 +1,64 @@
 import React, { useEffect, useRef } from 'react';
-import videojs from 'video.js';
-import 'video.js/dist/video-js.css';
-import '@videojs/themes/dist/forest/index.css';
 import './VideoPlayer.css';
 import { useStore } from '../../store/useStore';
 
 function VideoPlayer() {
   const videoRef = useRef(null);
-  const playerRef = useRef(null);
   const isSyncingRef = useRef(false);
   const currentClip = useStore(state => state.currentClip);
   const { playhead, setPlayhead, isPlaying, setIsPlaying } = useStore();
   
   console.log('VideoPlayer render - currentClip:', currentClip ? 'exists' : 'null');
 
-  useEffect(() => {
-    // Initialize Video.js when video element becomes available
-    if (!videoRef.current) {
-      console.log('No video element yet');
-      return;
-    }
-    
-    if (playerRef.current) {
-      console.log('Player already initialized');
-      return;
-    }
-    
-    console.log('Initializing Video.js player');
-    playerRef.current = videojs(videoRef.current, {
-      controls: true,
-      fluid: true,
-      responsive: true,
-      preload: 'auto',
-      playbackRates: [0.5, 1, 1.5, 2],
-      html5: {
-        nativeAudioTracks: false,
-        nativeVideoTracks: false,
-      },
-    });
-    
-    // Setup player event listeners (only once)
-    const player = playerRef.current;
-
-    player.on('play', () => {
-      if (!isSyncingRef.current) setIsPlaying(true);
-    });
-    player.on('pause', () => {
-      if (!isSyncingRef.current) setIsPlaying(false);
-    });
-    player.on('ended', () => {
-      if (!isSyncingRef.current) setIsPlaying(false);
-    });
-
-    player.on('timeupdate', () => {
-      if (player.currentTime() !== undefined) {
-        setPlayhead(player.currentTime());
-      }
-    });
-
-    // Cleanup
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.dispose();
-        playerRef.current = null;
-      }
-    };
-  }, [setPlayhead, setIsPlaying]); // Only initialize once on mount
-
   // Load video source when currentClip changes
   useEffect(() => {
-    console.log('=== Load video useEffect ===');
-    console.log('playerRef.current:', !!playerRef.current);
-    console.log('currentClip:', !!currentClip);
-    console.log('currentClip data:', currentClip);
+    if (!videoRef.current || !currentClip) return;
     
-    if (!playerRef.current || !currentClip) {
-      console.log('Skipping load - player or clip missing');
-      return;
-    }
-    
-    const player = playerRef.current;
+    const video = videoRef.current;
     console.log('Loading video:', currentClip.fileName);
     
     // For Electron, we need to load the file:// path
-    if (currentClip.filePath) {
-      // Ensure proper file:// URL format for Electron
-      let videoSrc = currentClip.filePath;
-      if (!videoSrc.startsWith('file://')) {
-        videoSrc = `file://${videoSrc}`;
-      }
-      
-      console.log('Setting video source:', videoSrc);
-      
-      try {
-        player.src({
-          src: videoSrc,
-          type: getVideoType(currentClip.format)
-        });
-        
-        // Add event listeners
-        player.on('loadstart', () => console.log('Video: loadstart'));
-        player.on('loadedmetadata', () => console.log('Video: loadedmetadata'));
-        player.on('canplay', () => {
-          console.log('Video: canplay');
-          console.log('Player video element:', player.videoWidth(), player.videoHeight());
-          console.log('Player dimensions:', player.width(), player.height());
-          console.log('Video element:', player.el());
-        });
-        player.on('error', () => console.error('Video error:', player.error()));
-        
-        player.load();
-        
-        // Force refresh the player display
-        player.trigger('loadstart');
-      } catch (err) {
-        console.error('Error setting source:', err);
-      }
+    let videoSrc = currentClip.filePath;
+    if (!videoSrc.startsWith('file://')) {
+      videoSrc = `file://${videoSrc}`;
     }
+    
+    console.log('Setting video source:', videoSrc);
+    video.src = videoSrc;
+    video.load();
   }, [currentClip]);
 
   // Sync playhead when it changes externally (e.g., from timeline)
   useEffect(() => {
-    if (playerRef.current && currentClip) {
-      const player = playerRef.current;
-      const currentTime = player.currentTime();
+    if (videoRef.current && currentClip) {
+      const video = videoRef.current;
+      const currentTime = video.currentTime;
       
       // Only seek if there's a meaningful difference (avoid constant seeking)
-      if (Math.abs(currentTime - playhead) > 0.5) {
-        player.currentTime(playhead);
+      if (Math.abs(currentTime - playhead) > 0.1) {
+        isSyncingRef.current = true;
+        video.currentTime = playhead;
+        setTimeout(() => {
+          isSyncingRef.current = false;
+        }, 100);
       }
     }
   }, [playhead, currentClip]);
 
   // Sync play/pause state from store to player
   useEffect(() => {
-    if (!playerRef.current) return;
+    if (!videoRef.current) return;
     
-    const player = playerRef.current;
+    const video = videoRef.current;
     
     // Set flag to prevent event handlers from updating store
     isSyncingRef.current = true;
     
     // Only change player state if it doesn't match store
-    if (isPlaying && player.paused()) {
-      player.play().catch(() => {});
-    } else if (!isPlaying && !player.paused()) {
-      player.pause();
+    if (isPlaying && video.paused) {
+      video.play().catch(() => {});
+    } else if (!isPlaying && !video.paused) {
+      video.pause();
     }
     
     // Reset flag after a brief delay
@@ -154,22 +67,49 @@ function VideoPlayer() {
     }, 300);
   }, [isPlaying]);
 
-  const getVideoType = (format) => {
-    const types = {
-      'mp4': 'video/mp4',
-      'mov': 'video/mp4',
-      'webm': 'video/webm',
-      'avi': 'video/x-msvideo',
-      'mkv': 'video/x-matroska',
+  // Handle video events
+  useEffect(() => {
+    if (!videoRef.current) return;
+    
+    const video = videoRef.current;
+    
+    const handlePlay = () => {
+      if (!isSyncingRef.current) setIsPlaying(true);
     };
-    return types[format?.toLowerCase()] || 'video/mp4';
-  };
+    
+    const handlePause = () => {
+      if (!isSyncingRef.current) setIsPlaying(false);
+    };
+    
+    const handleEnded = () => {
+      if (!isSyncingRef.current) setIsPlaying(false);
+    };
+    
+    const handleTimeUpdate = () => {
+      // Only update playhead if we're not currently seeking (to prevent feedback loop)
+      if (!isSyncingRef.current) {
+        setPlayhead(video.currentTime);
+      }
+    };
+    
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('ended', handleEnded);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    
+    return () => {
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+    };
+  }, [setPlayhead, setIsPlaying]);
 
-  // Always render video element so player can initialize
+  // Always render video element
   return (
     <div className="video-player-container">
       {!currentClip && (
-        <div className="video-player-empty" style={{ position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none' }}>
+        <div className="video-player-empty">
           <div className="empty-state-content">
             <svg 
               width="64" 
@@ -192,15 +132,15 @@ function VideoPlayer() {
         </div>
       )}
       
-      <div data-vjs-player className="video-player-wrapper" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%' }}>
+      {currentClip && (
         <video
           ref={videoRef}
-          className="video-js vjs-theme-forest vjs-big-play-centered"
+          className="native-video-player"
+          controls
         />
-      </div>
+      )}
     </div>
   );
 }
 
 export default VideoPlayer;
-

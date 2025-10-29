@@ -49,14 +49,28 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "index.html"
+      "index.html",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/fluent-ffmpeg",
+        "to": "fluent-ffmpeg",
+        "filter": ["**/*"]
+      }
     ],
     "mac": {
       "category": "public.app-category.video",
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "build/icon.icns"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "AudioVideo"
     }
   }
 }

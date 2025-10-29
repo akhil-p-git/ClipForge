@@ -59,5 +59,6 @@ export const useStore = create((set) => ({
   setInPoint: (time) => set({ inPoint: time }),
   setOutPoint: (time) => set({ outPoint: time }),
   clearTrimPoints: () => set({ inPoint: null, outPoint: null }),
+  clearTimelineClips: () => set({ timelineClips: [] }),
 }));
 

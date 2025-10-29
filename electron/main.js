@@ -4,6 +4,16 @@ const ffmpeg = require('fluent-ffmpeg');
 
 // In CommonJS, __dirname is already available automatically
 
+// Set FFmpeg paths for packaged app
+const isDev = !app.isPackaged;
+if (!isDev) {
+  // In production, FFmpeg should be in PATH
+  // We'll rely on system FFmpeg installation
+  console.log('Production mode: Using system FFmpeg');
+} else {
+  console.log('Development mode');
+}
+
 let mainWindow;
 
 function createWindow() {
@@ -141,31 +151,42 @@ ipcMain.handle('video:export', async (event, config) => {
         return;
       }
       
-      // Get actual file paths from timeline clips
-      const timelineClips = config.timelineClips || [];
+      // Support both timeline clips and direct trim export
+      let inputPath, outputPath, inPoint, outPoint;
       
-      if (timelineClips.length === 0) {
-        resolve({ 
-          success: false, 
-          message: 'No clips on timeline to export' 
-        });
-        return;
+      if (config.inputPath) {
+        // Direct trim export (from trim button)
+        inputPath = config.inputPath;
+        outputPath = config.outputPath;
+        inPoint = config.startTime || 0;
+        outPoint = config.endTime || 0;
+      } else {
+        // Export from timeline clips
+        const timelineClips = config.timelineClips || [];
+        
+        if (timelineClips.length === 0) {
+          resolve({ 
+            success: false, 
+            message: 'No clips on timeline to export' 
+          });
+          return;
+        }
+        
+        const firstClip = timelineClips[0];
+        
+        if (!firstClip.filePath) {
+          resolve({ 
+            success: false, 
+            message: 'Clip missing file path' 
+          });
+          return;
+        }
+
+        inputPath = firstClip.filePath;
+        outputPath = config.outputPath;
+        inPoint = firstClip.trimStart || firstClip.startTime || 0;
+        outPoint = firstClip.trimEnd || (firstClip.startTime + firstClip.duration);
       }
-      
-      // For MVP: export the first clip
-      // TODO: Support concatenating multiple clips
-      const firstClip = timelineClips[0];
-      
-      if (!firstClip.filePath) {
-        resolve({ 
-          success: false, 
-          message: 'Clip missing file path' 
-        });
-        return;
-      }
-      
-      const inputPath = firstClip.filePath;
-      const outputPath = config.outputPath;
       
       console.log('Starting export from', inputPath, 'to', outputPath);
       
@@ -173,8 +194,6 @@ ipcMain.handle('video:export', async (event, config) => {
       let command = ffmpeg(inputPath);
       
       // Apply trim if in/out points are set
-      const inPoint = firstClip.trimStart || firstClip.startTime || 0;
-      const outPoint = firstClip.trimEnd || (firstClip.startTime + firstClip.duration);
       const duration = outPoint - inPoint;
       
       console.log('Trim settings - In:', inPoint, 'Out:', outPoint, 'Duration:', duration);

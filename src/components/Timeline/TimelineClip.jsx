@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDrag } from 'react-dnd';
 
-function TimelineClip({ clip, sourceClip, updateClip }) {
+function TimelineClip({ clip, sourceClip, updateClip, onRemove }) {
   const [{ isDragging }, drag] = useDrag({
     type: 'timeline-clip',
     item: { clip },
@@ -23,6 +23,20 @@ function TimelineClip({ clip, sourceClip, updateClip }) {
       }}
     >
       <span className="clip-name">{sourceClip?.fileName || 'Clip'}</span>
+      {onRemove && (
+        <button
+          className="timeline-clip-remove"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onRemove) {
+              onRemove(clip.id);
+            }
+          }}
+          title="Remove from timeline"
+        >
+          ×
+        </button>
+      )}
     </div>
   );
 }

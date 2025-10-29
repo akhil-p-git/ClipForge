@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { useDrag } from 'react-dnd';
 
-function MediaItem({ clip, onClick, isSelected = false }) {
+function MediaItem({ clip, onClick, isSelected = false, onRemove }) {
   const mouseDownPosRef = useRef(null);
   
   const [{ isDragging }, drag] = useDrag({
@@ -68,6 +68,13 @@ function MediaItem({ clip, onClick, isSelected = false }) {
     }
   };
 
+  const handleRemove = (e) => {
+    e.stopPropagation(); // Prevent triggering click
+    if (onRemove) {
+      onRemove(clip.id);
+    }
+  };
+
   return (
     <div 
       ref={drag}
@@ -99,13 +106,23 @@ function MediaItem({ clip, onClick, isSelected = false }) {
             💾 {formatFileSize(clip.fileSize)}
           </span>
         </div>
-        {clip.resolution !== 'Unknown' && (
-          <div className="media-item-resolution">
-            {clip.resolution}
-          </div>
-        )}
-      </div>
+      {clip.resolution !== 'Unknown' && (
+        <div className="media-item-resolution">
+          {clip.resolution}
+        </div>
+      )}
     </div>
+    
+    {onRemove && (
+      <button 
+        className="media-item-remove"
+        onClick={handleRemove}
+        title="Remove from library"
+      >
+        ×
+      </button>
+    )}
+  </div>
   );
 }
 
