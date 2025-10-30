@@ -6,13 +6,31 @@ function VideoPlayer() {
   const videoRef = useRef(null);
   const isSyncingRef = useRef(false);
   const currentClip = useStore(state => state.currentClip);
+  const timelineClips = useStore(state => state.timelineClips);
+  const clips = useStore(state => state.clips);
   const { playhead, setPlayhead, isPlaying, setIsPlaying } = useStore();
-  
-  console.log('VideoPlayer render - currentClip:', currentClip ? 'exists' : 'null');
 
-  // Load video source when currentClip changes
+  // Find which clip is at the current playhead position
+  const getClipAtPlayhead = () => {
+    if (timelineClips.length === 0) return currentClip; // Fallback to selected clip
+
+    const clipAtPlayhead = timelineClips.find(tc => {
+      return playhead >= tc.startTime && playhead < (tc.startTime + tc.duration);
+    });
+
+    if (!clipAtPlayhead) return currentClip; // Fallback to selected clip
+
+    // Get the source clip from the library
+    return clips.find(c => c.id === clipAtPlayhead.clipId);
+  };
+
+  const activeClip = getClipAtPlayhead() || currentClip;
+
+  console.log('VideoPlayer render - activeClip:', activeClip ? 'exists' : 'null');
+
+  // Load video source when activeClip or playhead changes
   useEffect(() => {
-    if (!videoRef.current || !currentClip) {
+    if (!videoRef.current || !activeClip) {
       // Ensure video element is cleared when no clip
       if (videoRef.current) {
         videoRef.current.src = '';
@@ -20,26 +38,26 @@ function VideoPlayer() {
       }
       return;
     }
-    
+
     // Validate clip has required properties
-    if (!currentClip.filePath || !currentClip.fileName) {
-      console.error('Invalid clip:', currentClip);
+    if (!activeClip.filePath || !activeClip.fileName) {
+      console.error('Invalid clip:', activeClip);
       return;
     }
-    
+
     const video = videoRef.current;
     try {
-      console.log('Loading video:', currentClip.fileName);
-      console.log('File path:', currentClip.filePath);
-      console.log('File size:', currentClip.fileSize || 0);
-      
+      console.log('Loading video:', activeClip.fileName);
+      console.log('File path:', activeClip.filePath);
+      console.log('File size:', activeClip.fileSize || 0);
+
       // Check if file size is valid
-      if (currentClip.fileSize === 0) {
-        console.warn('Warning: File size is 0, video may not load:', currentClip.fileName);
+      if (activeClip.fileSize === 0) {
+        console.warn('Warning: File size is 0, video may not load:', activeClip.fileName);
       }
-      
+
       // For Electron, we need to load the file:// path
-      let videoSrc = currentClip.filePath;
+      let videoSrc = activeClip.filePath;
       if (!videoSrc || typeof videoSrc !== 'string') {
         console.error('Invalid file path:', videoSrc);
         return;
@@ -50,16 +68,30 @@ function VideoPlayer() {
       }
       
       console.log('Setting video source:', videoSrc);
-      console.log('Clip duration:', currentClip.duration || 0, 'seconds');
-      
+      console.log('Clip duration:', activeClip.duration || 0, 'seconds');
+
       // Ensure audio is enabled
       video.muted = false;
       video.volume = 1.0;
-      
+
       // Safely set video source
       try {
-        video.src = videoSrc;
-        video.load();
+        // Only reload if source changed
+        const currentSrc = video.src;
+        if (currentSrc !== videoSrc) {
+          video.src = videoSrc;
+          video.load();
+        }
+
+        // Calculate the time within this clip
+        const timelineClip = timelineClips.find(tc => {
+          return playhead >= tc.startTime && playhead < (tc.startTime + tc.duration);
+        });
+
+        if (timelineClip) {
+          const timeWithinClip = playhead - timelineClip.startTime;
+          video.currentTime = timeWithinClip;
+        }
       } catch (loadErr) {
         console.error('Error loading video:', loadErr);
         // Clear video on error to prevent crashes
@@ -134,7 +166,7 @@ function VideoPlayer() {
       video.removeEventListener('error', handleError);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [currentClip]);
+  }, [activeClip, playhead, timelineClips]);
 
   // Sync playhead when it changes externally (e.g., from timeline)
   useEffect(() => {
