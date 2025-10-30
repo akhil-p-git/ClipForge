@@ -1,6 +1,6 @@
 # ClipForge
 
-A desktop video editor built with Electron + React, featuring screen recording, webcam capture, timeline editing, and AI-powered transcription.
+A powerful desktop video editor built with Electron + React, featuring screen recording, webcam capture, timeline editing, and AI-powered transcription.
 
 ## Tech Stack
 
@@ -9,27 +9,23 @@ A desktop video editor built with Electron + React, featuring screen recording, 
 - **JavaScript** - Core language
 - **Vite** - Build tool
 - **Zustand** - State management
-- **Video.js** - Video player
-- **Wavesurfer.js** - Audio visualization
-- **FFmpeg** - Video processing
+- **FFmpeg** - Video processing & export
 - **OpenAI Whisper** - AI transcription
+- **React DnD** - Drag & drop timeline
 
 ## Features
 
-### MVP (Current Focus)
-- ✅ Project setup complete
-- ✅ Electron + React scaffold
-- ⏳ Video import
-- ⏳ Timeline editing
-- ⏳ Basic trim functionality
-- ⏳ Export to MP4
-
-### Full Features (To Come)
-- Screen recording
-- Webcam capture
-- Multi-track timeline
-- AI transcription
-- Advanced export options
+### ✅ Completed Features
+- ✅ Video import (drag & drop or file picker)
+- ✅ Screen recording with system audio
+- ✅ Webcam recording
+- ✅ Multi-clip timeline editing
+- ✅ Drag & drop timeline arrangement
+- ✅ Timeline export (concatenate multiple clips)
+- ✅ AI-powered transcription (OpenAI Whisper)
+- ✅ Export to MP4 with quality settings
+- ✅ Real-time video preview
+- ✅ Keyboard shortcuts
 
 ## Development Setup
 
@@ -162,30 +158,47 @@ Using Zustand for global state:
 | `fluent-ffmpeg` | Video processing |
 | `@ffmpeg/ffmpeg` | FFmpeg in browser (fallback) |
 
-## Known Issues
+## Important Notes
 
-- Some npm packages have peer dependency warnings but work correctly
-- FFmpeg must be installed separately on the system
-- Development requires running two processes (Vite + Electron)
+- **FFmpeg Required**: FFmpeg must be installed on your system for video export to work
+  - macOS: `brew install ffmpeg`
+  - Windows/Linux: Download from [ffmpeg.org](https://ffmpeg.org/download.html)
+- **Development Mode**: Running `npm run electron:dev` starts both Vite dev server and Electron
+- **Peer Dependencies**: Use `npm install --legacy-peer-deps` to avoid dependency conflicts
 
 ## Quick Start Guide
 
-1. **Import Video**: Click "Import" button or drag & drop video files
+### Recording
+1. **Screen Recording**: Click "Screen" button, select screen/window, configure audio, and start recording
+2. **Webcam Recording**: Click "Webcam" button, select camera, and start recording
+3. Recordings are automatically saved and added to your media library
+
+### Editing
+1. **Import Video**: Click "Import" button or drag & drop video files into the media library
 2. **Preview**: Click any clip in the media library to preview it
-3. **Edit on Timeline**: Drag clips from library to timeline
-4. **Set Trim Points**: Press 'I' for in point, 'O' for out point while playing
-5. **Export**: Click "Export" button, choose settings, and export your video
+3. **Add to Timeline**: Drag clips from library to the timeline (clips auto-position sequentially)
+4. **Arrange Clips**: Drag clips on the timeline to reorder them
+5. **Export Timeline**: Click "Export Timeline" to concatenate all clips into a single MP4
+
+### Transcription
+1. **Add OpenAI API Key**: Set `OPENAI_API_KEY` in your `.env` file
+2. **Select Clip**: Click a clip in the media library
+3. **Transcribe**: Click the transcription button to generate AI-powered captions
+4. **Export**: Save transcription as text file
 
 ## Keyboard Shortcuts
 
 - **Space**: Play/Pause
-- **I**: Set in point (trim start)
-- **O**: Set out point (trim end)
-- **Left/Right**: Frame-by-frame navigation
+- **I**: Set in point (mark start of selection)
+- **O**: Set out point (mark end of selection)
 
-## Status
+## Current Status
 
-MVP features complete! The app is fully functional for basic video editing.
+🎉 **All core features complete!** ClipForge is fully functional for:
+- Multi-source recording (screen + webcam)
+- Timeline-based editing with multiple clips
+- Professional-quality exports with FFmpeg
+- AI transcription powered by OpenAI Whisper
 
 ## Contributing
 
