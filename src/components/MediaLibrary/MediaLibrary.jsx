@@ -191,19 +191,12 @@ function MediaLibrary() {
           >
             📷 Webcam
           </button>
-          <button 
+          <button
             className="import-button"
             onClick={handleImportClick}
             title="Import Video Files"
           >
             Import
-          </button>
-          <button 
-            className="export-button"
-            onClick={() => window.showExportDialog?.()}
-            title="Export Video"
-          >
-            Export
           </button>
         </div>
       </div>

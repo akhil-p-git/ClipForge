@@ -1541,14 +1541,13 @@ function ScreenRecorder({ onClose }) {
 
         <div className="recorder-options-wrapper">
           <div className="recorder-options">
-            <label className="checkbox-label">
+            <label className="checkbox-label" style={{ opacity: 0.5, cursor: 'not-allowed' }}>
               <input
                 type="checkbox"
-                checked={includeSystemAudio}
-                onChange={(e) => setIncludeSystemAudio(e.target.checked)}
-                disabled={isRecording}
+                checked={false}
+                disabled={true}
               />
-              <span>Include system audio</span>
+              <span>Include system audio (not available)</span>
             </label>
 
             {audioInputDevices.length > 0 && (

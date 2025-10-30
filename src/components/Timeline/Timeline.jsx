@@ -394,7 +394,15 @@ function Timeline() {
           </div>
         
         <div className="trim-shortcuts">
-          <span className="shortcut-hint">Press <kbd>I</kbd> for In, <kbd>O</kbd> for Out</span>
+          <button
+            className="control-button"
+            onClick={() => window.showExportDialog?.()}
+            style={{ background: '#3b82f6', color: 'white', fontWeight: '600' }}
+            title="Export Timeline"
+          >
+            Export
+          </button>
+          <span className="shortcut-hint" style={{ marginLeft: '16px' }}>Press <kbd>I</kbd> for In, <kbd>O</kbd> for Out</span>
           <button
             className="control-button"
             onClick={() => {
@@ -407,8 +415,8 @@ function Timeline() {
             Split
           </button>
           {inPoint !== null && outPoint !== null && (
-            <button 
-              className="control-button" 
+            <button
+              className="control-button"
               onClick={handleApplyTrim}
               style={{ marginLeft: '12px', background: '#10b981', color: 'white' }}
               title="Apply Trim"
