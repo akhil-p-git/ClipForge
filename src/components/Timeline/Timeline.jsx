@@ -153,12 +153,20 @@ function Timeline() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Get duration from currentClip, default to 60 seconds if no clip
-  // Handle NaN/undefined cases
-  const clipDuration = currentClip?.duration;
-  const timelineDuration = (clipDuration && !isNaN(clipDuration) && clipDuration > 0) 
-    ? Math.ceil(clipDuration) 
-    : 60;
+  // Calculate timeline duration from all clips on timeline
+  // Timeline duration = end time of the last clip, or 60 seconds minimum
+  const calculateTimelineDuration = () => {
+    if (timelineClips.length === 0) return 60; // Default 60 seconds if empty
+
+    const lastClipEnd = timelineClips.reduce((maxEnd, clip) => {
+      const clipEnd = clip.startTime + clip.duration;
+      return Math.max(maxEnd, clipEnd);
+    }, 0);
+
+    return Math.max(lastClipEnd, 60); // Minimum 60 seconds
+  };
+
+  const timelineDuration = calculateTimelineDuration();
   
   // Generate 10 equal ruler marks
   const rulerMarks = Array.from({ length: 11 }, (_, i) => i * (timelineDuration / 10));
@@ -180,6 +188,60 @@ function Timeline() {
     }
 
     setShowTrimDialog(true);
+  };
+
+  const handleExportTimeline = async () => {
+    if (timelineClips.length === 0) {
+      alert('No clips on timeline to export');
+      return;
+    }
+
+    if (!window.electronAPI) {
+      alert('Export is only available in Electron');
+      return;
+    }
+
+    try {
+      // Show save dialog
+      const { canceled, filePath } = await window.electronAPI.showSaveDialog({
+        defaultPath: `timeline_export_${Date.now()}.mp4`,
+        filters: [
+          { name: 'MP4 Video', extensions: ['mp4'] }
+        ]
+      });
+
+      if (canceled || !filePath) return;
+
+      // Sort clips by start time
+      const sortedClips = [...timelineClips].sort((a, b) => a.startTime - b.startTime);
+
+      // Prepare clip data for export
+      const clipInputs = sortedClips.map(timelineClip => {
+        const sourceClip = clips.find(c => c.id === timelineClip.clipId);
+        return {
+          filePath: sourceClip.filePath,
+          startTime: timelineClip.startTime,
+          duration: timelineClip.duration,
+          trimStart: timelineClip.trimStart || 0,
+          trimEnd: timelineClip.trimEnd || 0,
+        };
+      });
+
+      // Call export with all clips
+      const result = await window.electronAPI.exportTimeline({
+        clips: clipInputs,
+        outputPath: filePath,
+      });
+
+      if (result.success) {
+        alert('Timeline exported successfully!');
+      } else {
+        alert(`Export failed: ${result.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Timeline export error:', error);
+      alert(`Export failed: ${error.message}`);
+    }
   };
 
   const handleTrimExport = async (filename, format) => {
@@ -274,6 +336,20 @@ function Timeline() {
       <div className="timeline-header">
         <h2 className="section-title">Timeline</h2>
         <div className="timeline-controls">
+          <button
+            className="control-button"
+            onClick={handleExportTimeline}
+            disabled={timelineClips.length === 0}
+            style={{
+              background: timelineClips.length > 0 ? '#10b981' : '#374151',
+              color: 'white',
+              fontWeight: '600',
+              marginRight: '12px'
+            }}
+            title="Export Timeline"
+          >
+            Export Timeline
+          </button>
           <button
             className={`control-button ${snapEnabled ? 'active' : ''}`}
             onClick={() => setSnapEnabled(!snapEnabled)}

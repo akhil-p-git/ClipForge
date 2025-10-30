@@ -170,6 +170,79 @@ ipcMain.handle('file:saveText', async (event, { filePath, content }) => {
   }
 });
 
+// Handle timeline export (concatenate multiple clips)
+ipcMain.handle('video:exportTimeline', async (event, config) => {
+  console.log('Export timeline called with config:', config);
+
+  return new Promise(async (resolve, reject) => {
+    try {
+      const { clips, outputPath } = config;
+
+      if (!clips || clips.length === 0) {
+        resolve({ success: false, message: 'No clips to export' });
+        return;
+      }
+
+      // Create a temporary concat file list
+      const tempDir = app.getPath('temp');
+      const concatFile = path.join(tempDir, `concat_${Date.now()}.txt`);
+
+      // Sort clips by start time
+      const sortedClips = [...clips].sort((a, b) => a.startTime - b.startTime);
+
+      // Build concat file content
+      let concatContent = '';
+      for (const clip of sortedClips) {
+        concatContent += `file '${clip.filePath}'\n`;
+      }
+
+      // Write concat file
+      fs.writeFileSync(concatFile, concatContent);
+
+      console.log('Concat file created:', concatFile);
+      console.log('Content:', concatContent);
+
+      // Use FFmpeg concat demuxer
+      ffmpeg()
+        .input(concatFile)
+        .inputOptions(['-f concat', '-safe 0'])
+        .outputOptions(['-c copy']) // Copy codec for faster processing
+        .output(outputPath)
+        .on('start', (cmdline) => {
+          console.log('FFmpeg started:', cmdline);
+        })
+        .on('progress', (progress) => {
+          event.sender.send('export:progress', progress.percent || 0);
+        })
+        .on('end', () => {
+          console.log('Timeline export finished');
+          // Clean up concat file
+          try {
+            fs.unlinkSync(concatFile);
+          } catch (err) {
+            console.warn('Failed to delete concat file:', err);
+          }
+          resolve({ success: true, outputPath });
+        })
+        .on('error', (err) => {
+          console.error('Timeline export error:', err);
+          // Clean up concat file
+          try {
+            fs.unlinkSync(concatFile);
+          } catch (cleanupErr) {
+            console.warn('Failed to delete concat file:', cleanupErr);
+          }
+          resolve({ success: false, message: err.message });
+        })
+        .run();
+
+    } catch (error) {
+      console.error('Timeline export error:', error);
+      resolve({ success: false, message: error.message });
+    }
+  });
+});
+
 // Handle export video
 ipcMain.handle('video:export', async (event, config) => {
   console.log('Export video called with config:', config);
