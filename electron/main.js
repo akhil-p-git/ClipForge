@@ -159,6 +159,17 @@ ipcMain.handle('dialog:save', async (event, options) => {
   return result;
 });
 
+// Handle saving text file (for transcription exports)
+ipcMain.handle('file:saveText', async (event, { filePath, content }) => {
+  try {
+    fs.writeFileSync(filePath, content, 'utf8');
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving file:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // Handle export video
 ipcMain.handle('video:export', async (event, config) => {
   console.log('Export video called with config:', config);

@@ -13,6 +13,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // File dialogs
   showOpenDialog: (options) => ipcRenderer.invoke('dialog:open', options),
   showSaveDialog: (options) => ipcRenderer.invoke('dialog:save', options),
+
+  // File operations
+  saveTextFile: ({ filePath, content }) => ipcRenderer.invoke('file:saveText', { filePath, content }),
   
   // Recording
   getRecorderSources: () => ipcRenderer.invoke('recorder:getSources'),

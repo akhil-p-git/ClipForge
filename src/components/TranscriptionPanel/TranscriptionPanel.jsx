@@ -80,10 +80,18 @@ function TranscriptionPanel({ videoPath, fileName, onClose }) {
     });
 
     if (!canceled && filePath) {
-      // Write file
-      const fs = require('fs');
-      fs.writeFileSync(filePath, content);
-      alert('Transcript exported successfully!');
+      // Write file using IPC
+      try {
+        const result = await window.electronAPI.saveTextFile({ filePath, content });
+        if (result.success) {
+          alert('Transcript exported successfully!');
+        } else {
+          alert(`Failed to export: ${result.error}`);
+        }
+      } catch (err) {
+        console.error('Export error:', err);
+        alert(`Failed to export: ${err.message}`);
+      }
     }
   };
 
