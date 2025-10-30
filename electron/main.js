@@ -202,11 +202,18 @@ ipcMain.handle('video:exportTimeline', async (event, config) => {
       console.log('Concat file created:', concatFile);
       console.log('Content:', concatContent);
 
-      // Use FFmpeg concat demuxer
+      // Use FFmpeg concat demuxer with re-encoding for compatibility
+      // Re-encoding ensures videos with different codecs/settings work together
       ffmpeg()
         .input(concatFile)
         .inputOptions(['-f concat', '-safe 0'])
-        .outputOptions(['-c copy']) // Copy codec for faster processing
+        .videoCodec('libx264')
+        .audioCodec('aac')
+        .outputOptions([
+          '-preset fast',
+          '-crf 23',
+          '-pix_fmt yuv420p'
+        ])
         .output(outputPath)
         .on('start', (cmdline) => {
           console.log('FFmpeg started:', cmdline);

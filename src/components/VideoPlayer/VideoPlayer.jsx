@@ -10,25 +10,25 @@ function VideoPlayer() {
   const clips = useStore(state => state.clips);
   const { playhead, setPlayhead, isPlaying, setIsPlaying } = useStore();
 
-  // Find which clip is at the current playhead position
-  const getClipAtPlayhead = () => {
-    if (timelineClips.length === 0) return currentClip; // Fallback to selected clip
+  // Find which timeline clip is at the current playhead position
+  const getTimelineClipAtPlayhead = () => {
+    if (timelineClips.length === 0) return null;
 
-    const clipAtPlayhead = timelineClips.find(tc => {
+    return timelineClips.find(tc => {
       return playhead >= tc.startTime && playhead < (tc.startTime + tc.duration);
     });
-
-    if (!clipAtPlayhead) return currentClip; // Fallback to selected clip
-
-    // Get the source clip from the library
-    return clips.find(c => c.id === clipAtPlayhead.clipId);
   };
 
-  const activeClip = getClipAtPlayhead() || currentClip;
+  const activeTimelineClip = getTimelineClipAtPlayhead();
+
+  // Get the source clip from the library, or fall back to currentClip
+  const activeClip = activeTimelineClip
+    ? clips.find(c => c.id === activeTimelineClip.clipId)
+    : currentClip;
 
   console.log('VideoPlayer render - activeClip:', activeClip ? 'exists' : 'null');
 
-  // Load video source when activeClip or playhead changes
+  // Load video source when activeClip changes (NOT on every playhead update)
   useEffect(() => {
     if (!videoRef.current || !activeClip) {
       // Ensure video element is cleared when no clip
@@ -62,11 +62,11 @@ function VideoPlayer() {
         console.error('Invalid file path:', videoSrc);
         return;
       }
-      
+
       if (!videoSrc.startsWith('file://')) {
         videoSrc = `file://${videoSrc}`;
       }
-      
+
       console.log('Setting video source:', videoSrc);
       console.log('Clip duration:', activeClip.duration || 0, 'seconds');
 
@@ -76,21 +76,16 @@ function VideoPlayer() {
 
       // Safely set video source
       try {
-        // Only reload if source changed
+        // Check if we need to reload
         const currentSrc = video.src;
-        if (currentSrc !== videoSrc) {
+        const needsReload = currentSrc !== videoSrc;
+
+        if (needsReload) {
+          console.log('Loading new video source');
+          // Set the new source directly
           video.src = videoSrc;
           video.load();
-        }
-
-        // Calculate the time within this clip
-        const timelineClip = timelineClips.find(tc => {
-          return playhead >= tc.startTime && playhead < (tc.startTime + tc.duration);
-        });
-
-        if (timelineClip) {
-          const timeWithinClip = playhead - timelineClip.startTime;
-          video.currentTime = timeWithinClip;
+          // Seeking will be handled by the playhead sync useEffect once video loads
         }
       } catch (loadErr) {
         console.error('Error loading video:', loadErr);
@@ -110,25 +105,25 @@ function VideoPlayer() {
       }
       return;
     }
-    
+
     // Handle duration issues (Infinity, NaN, or 0)
     const handleLoadedMetadata = () => {
       const videoDuration = video.duration;
       console.log('Video metadata loaded - video.duration:', videoDuration);
-      console.log('Clip duration:', currentClip.duration);
-      
+      console.log('Clip duration:', activeClip.duration);
+
       // If video duration is invalid, use clip's stored duration
       if (!videoDuration || !isFinite(videoDuration) || videoDuration <= 0) {
-        if (currentClip.duration && currentClip.duration > 0) {
-          console.warn('Video duration invalid, using clip duration:', currentClip.duration);
+        if (activeClip.duration && activeClip.duration > 0) {
+          console.warn('Video duration invalid, using clip duration:', activeClip.duration);
           // Override the duration property for display purposes
           Object.defineProperty(video, 'duration', {
-            get: () => currentClip.duration,
+            get: () => activeClip.duration,
             configurable: true
           });
         }
       }
-      
+
       // Log audio tracks
       console.log('Video has audio tracks:', video.audioTracks?.length || 'unknown');
       if (video.audioTracks && video.audioTracks.length > 0) {
@@ -139,9 +134,9 @@ function VideoPlayer() {
         })));
       }
     };
-    
+
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    
+
     // Add error handler
     const handleError = (e) => {
       console.error('Video load error:', e);
@@ -159,31 +154,53 @@ function VideoPlayer() {
         console.error(errorMsg);
       }
     };
-    
+
     video.addEventListener('error', handleError);
-    
+
     return () => {
       video.removeEventListener('error', handleError);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [activeClip, playhead, timelineClips]);
+  }, [activeClip]);
 
-  // Sync playhead when it changes externally (e.g., from timeline)
+  // Sync playhead when it changes externally (e.g., from timeline scrubbing or clip changes)
   useEffect(() => {
-    if (videoRef.current && currentClip) {
-      const video = videoRef.current;
-      const currentTime = video.currentTime;
-      
-      // Only seek if there's a meaningful difference (avoid constant seeking)
-      if (Math.abs(currentTime - playhead) > 0.1) {
-        isSyncingRef.current = true;
-        video.currentTime = playhead;
-        setTimeout(() => {
-          isSyncingRef.current = false;
-        }, 100);
-      }
+    if (!videoRef.current || isSyncingRef.current) return;
+
+    const video = videoRef.current;
+
+    // Wait for video to be ready
+    if (video.readyState < 2) {
+      // Video not ready yet, wait for it
+      const handleCanSeek = () => {
+        const timeWithinClip = activeTimelineClip
+          ? playhead - activeTimelineClip.startTime
+          : playhead;
+
+        console.log('Video ready, seeking to:', timeWithinClip);
+        video.currentTime = timeWithinClip;
+      };
+
+      video.addEventListener('loadeddata', handleCanSeek, { once: true });
+      return;
     }
-  }, [playhead, currentClip]);
+
+    // Calculate the time within the current timeline clip (or use playhead directly for individual clips)
+    const timeWithinClip = activeTimelineClip
+      ? playhead - activeTimelineClip.startTime
+      : playhead;
+
+    const currentTime = video.currentTime;
+
+    // Only seek if there's a meaningful difference (avoid constant seeking)
+    if (Math.abs(currentTime - timeWithinClip) > 0.3) {
+      isSyncingRef.current = true;
+      video.currentTime = timeWithinClip;
+      setTimeout(() => {
+        isSyncingRef.current = false;
+      }, 100);
+    }
+  }, [playhead, activeTimelineClip]);
 
   // Sync play/pause state from store to player
   useEffect(() => {
@@ -224,27 +241,29 @@ function VideoPlayer() {
     const handleEnded = () => {
       if (isSyncingRef.current) return;
 
-      // Check if there's a next clip on the timeline
-      const currentTimelineClip = timelineClips.find(tc => {
-        return playhead >= tc.startTime && playhead < (tc.startTime + tc.duration);
-      });
+      console.log('Video ended, looking for next clip');
 
-      if (currentTimelineClip) {
-        // Move playhead to start of next clip
-        const nextClipStart = currentTimelineClip.startTime + currentTimelineClip.duration;
+      // Use activeTimelineClip from the component scope
+      if (activeTimelineClip) {
+        // Calculate the end of this clip
+        const currentClipEnd = activeTimelineClip.startTime + activeTimelineClip.duration;
 
-        // Check if there's actually a clip at that position
-        const nextClip = timelineClips.find(tc => tc.startTime >= nextClipStart);
+        // Sort timeline clips and find the next one
+        const sortedClips = [...timelineClips].sort((a, b) => a.startTime - b.startTime);
+        const nextClip = sortedClips.find(tc => tc.startTime >= currentClipEnd);
 
         if (nextClip) {
-          // Continue playing into next clip
-          setPlayhead(nextClipStart);
-          // Keep playing
+          console.log('Found next clip, advancing playhead to:', nextClip.startTime);
+          // Move playhead to start of next clip
+          setPlayhead(nextClip.startTime);
+          // Keep playing (isPlaying should already be true)
         } else {
+          console.log('No more clips, stopping playback');
           // No more clips, stop
           setIsPlaying(false);
         }
       } else {
+        console.log('No timeline clip active, stopping playback');
         // No timeline clips, just stop
         setIsPlaying(false);
       }
@@ -280,7 +299,7 @@ function VideoPlayer() {
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [setPlayhead, setIsPlaying, timelineClips, playhead]);
+  }, [setPlayhead, setIsPlaying, timelineClips, activeTimelineClip, playhead]);
 
   // Always render video element
   return (
