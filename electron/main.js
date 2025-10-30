@@ -4,6 +4,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const fs = require('fs');
 const { exec } = require('child_process');
 const FormData = require('form-data');
+require('dotenv').config();
 
 // In CommonJS, __dirname is already available automatically
 
@@ -257,6 +258,11 @@ ipcMain.handle('video:export', async (event, config) => {
       ffmpegCommand.output(outputPath).run();
     });
   });
+});
+
+// Get OpenAI API key from environment
+ipcMain.handle('getOpenAIApiKey', async () => {
+  return process.env.OPENAI_API_KEY || '';
 });
 
 // Handle transcription

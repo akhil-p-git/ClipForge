@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   importVideo: (filePath) => ipcRenderer.invoke('video:import', filePath),
   exportVideo: (config) => ipcRenderer.invoke('video:export', config),
   getVideoMetadata: (filePath) => ipcRenderer.invoke('video:getMetadata', filePath),
+  getOpenAIApiKey: () => ipcRenderer.invoke('getOpenAIApiKey'),
   transcribeVideo: ({ inputPath, apiKey }) => ipcRenderer.invoke('video:transcribe', { inputPath, apiKey }),
   
   // File dialogs

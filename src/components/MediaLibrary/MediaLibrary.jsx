@@ -4,6 +4,7 @@ import MediaItem from './MediaItem';
 import TranscriptionPanel from '../TranscriptionPanel/TranscriptionPanel';
 import ScreenRecorder from '../ScreenRecorder/ScreenRecorder';
 import WebcamRecorder from '../WebcamRecorder/WebcamRecorder';
+import ConfirmDialog from '../ConfirmDialog/ConfirmDialog';
 import './MediaLibrary.css';
 
 function MediaLibrary() {
@@ -13,6 +14,8 @@ function MediaLibrary() {
   const [transcriptionClip, setTranscriptionClip] = useState(null);
   const [showScreenRecorder, setShowScreenRecorder] = useState(false);
   const [showWebcamRecorder, setShowWebcamRecorder] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [clipToDelete, setClipToDelete] = useState(null);
 
   const handleImportClick = async () => {
     console.log('Import button clicked');
@@ -157,14 +160,32 @@ function MediaLibrary() {
   };
 
   const handleRemoveClip = (clipId) => {
+    const clip = clips.find(c => c.id === clipId);
+    if (clip) {
+      setClipToDelete(clip);
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (!clipToDelete) return;
+    
     // If we're removing the currently selected clip, clear it
-    if (currentClip?.id === clipId) {
+    if (currentClip?.id === clipToDelete.id) {
       setCurrentClip(null);
       useStore.getState().setPlayhead(0);
       useStore.getState().setIsPlaying(false);
       useStore.getState().clearTrimPoints();
     }
-    useStore.getState().removeClip(clipId);
+    useStore.getState().removeClip(clipToDelete.id);
+    
+    setShowDeleteConfirm(false);
+    setClipToDelete(null);
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setClipToDelete(null);
   };
 
   const handleTranscribeClick = (clip) => {
@@ -262,6 +283,16 @@ function MediaLibrary() {
           onClose={() => setShowWebcamRecorder(false)}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        message={`Are you sure you want to remove "${clipToDelete?.fileName || 'this file'}"?`}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        confirmText="Remove"
+        cancelText="Cancel"
+        confirmButtonStyle="danger"
+      />
     </div>
   );
 }

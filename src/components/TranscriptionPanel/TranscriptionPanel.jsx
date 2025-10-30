@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './TranscriptionPanel.css';
 
 function TranscriptionPanel({ videoPath, fileName, onClose }) {
@@ -7,9 +7,24 @@ function TranscriptionPanel({ videoPath, fileName, onClose }) {
   const [error, setError] = useState(null);
   const [apiKey, setApiKey] = useState('');
 
+  // Load API key from environment on mount
+  useEffect(() => {
+    const loadApiKey = async () => {
+      try {
+        const envApiKey = await window.electronAPI.getOpenAIApiKey();
+        if (envApiKey) {
+          setApiKey(envApiKey);
+        }
+      } catch (err) {
+        console.warn('Could not load API key from environment:', err);
+      }
+    };
+    loadApiKey();
+  }, []);
+
   const handleTranscribe = async () => {
     if (!apiKey.trim()) {
-      setError('Please enter your OpenAI API key');
+      setError('Please enter your OpenAI API key in the .env file or input field');
       return;
     }
 
