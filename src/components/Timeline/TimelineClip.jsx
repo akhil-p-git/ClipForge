@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDrag } from 'react-dnd';
 
-function TimelineClip({ clip, sourceClip, updateClip, onRemove }) {
+function TimelineClip({ clip, sourceClip, updateClip, onRemove, timelineDuration = 60 }) {
   const [{ isDragging }, drag] = useDrag({
     type: 'timeline-clip',
     item: { clip },
@@ -15,8 +15,8 @@ function TimelineClip({ clip, sourceClip, updateClip, onRemove }) {
       ref={drag}
       className={`clip-block ${clip.trackId === 1 ? 'overlay' : ''}`}
       style={{
-        left: `${(clip.startTime / 60) * 100}%`,
-        width: `${(clip.duration / 60) * 100}%`,
+        left: `${(clip.startTime / timelineDuration) * 100}%`,
+        width: `${(clip.duration / timelineDuration) * 100}%`,
         position: 'absolute',
         opacity: isDragging ? 0.5 : 1,
         cursor: 'move',

@@ -3,7 +3,7 @@ import { useStore } from '../../store/useStore';
 import './ScreenRecorder.css';
 
 function ScreenRecorder({ onClose }) {
-  const { addClip } = useStore();
+  const { addClip, addToTimeline, timelineClips } = useStore();
   const [sources, setSources] = useState([]);
   const [selectedSource, setSelectedSource] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -1251,6 +1251,24 @@ function ScreenRecorder({ onClose }) {
           try {
             addClip(clip);
             console.log('Clip added successfully:', clip.id);
+
+            // Add recording directly to timeline at the end
+            const totalTimelineDuration = timelineClips.reduce((max, tc) => {
+              return Math.max(max, tc.startTime + tc.duration);
+            }, 0);
+
+            const timelineClip = {
+              id: `timeline-${Date.now()}`,
+              clipId: clip.id,
+              trackId: 0, // Add to main track
+              startTime: totalTimelineDuration, // Add at the end of existing clips
+              duration: clip.duration,
+              trimStart: 0,
+              trimEnd: 0,
+            };
+            addToTimeline(timelineClip);
+            console.log('Clip added to timeline at:', totalTimelineDuration);
+
             // Use multiple animation frames to ensure all state updates complete
             requestAnimationFrame(() => {
               setTimeout(() => {
@@ -1288,6 +1306,22 @@ function ScreenRecorder({ onClose }) {
             createdAt: new Date(),
           };
           addClip(clip);
+
+          // Add to timeline
+          const totalTimelineDuration = timelineClips.reduce((max, tc) => {
+            return Math.max(max, tc.startTime + tc.duration);
+          }, 0);
+          const timelineClip = {
+            id: `timeline-${Date.now()}`,
+            clipId: clip.id,
+            trackId: 0,
+            startTime: totalTimelineDuration,
+            duration: clip.duration,
+            trimStart: 0,
+            trimEnd: 0,
+          };
+          addToTimeline(timelineClip);
+
           setTimeout(() => {
             try {
               onClose();
@@ -1355,8 +1389,24 @@ function ScreenRecorder({ onClose }) {
             hasAudio: recordingHasAudio, // Use passed audio state
             createdAt: new Date(),
           };
-          
+
           addClip(clip);
+
+          // Add to timeline
+          const totalTimelineDuration = timelineClips.reduce((max, tc) => {
+            return Math.max(max, tc.startTime + tc.duration);
+          }, 0);
+          const timelineClip = {
+            id: `timeline-${Date.now()}`,
+            clipId: clip.id,
+            trackId: 0,
+            startTime: totalTimelineDuration,
+            duration: clip.duration,
+            trimStart: 0,
+            trimEnd: 0,
+          };
+          addToTimeline(timelineClip);
+
           onClose();
         } catch (err) {
           console.error('Error adding clip to library:', err);
@@ -1373,6 +1423,22 @@ function ScreenRecorder({ onClose }) {
             createdAt: new Date(),
           };
           addClip(clip);
+
+          // Add to timeline
+          const totalTimelineDuration = timelineClips.reduce((max, tc) => {
+            return Math.max(max, tc.startTime + tc.duration);
+          }, 0);
+          const timelineClip = {
+            id: `timeline-${Date.now()}`,
+            clipId: clip.id,
+            trackId: 0,
+            startTime: totalTimelineDuration,
+            duration: clip.duration,
+            trimStart: 0,
+            trimEnd: 0,
+          };
+          addToTimeline(timelineClip);
+
           onClose();
         }
       }, 2000); // Longer wait for conversion

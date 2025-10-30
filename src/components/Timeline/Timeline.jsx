@@ -1,25 +1,142 @@
 import React, { useEffect, useState } from 'react';
-import { useDrop, useDrag } from 'react-dnd';
+import { useDrop } from 'react-dnd';
 import { useStore } from '../../store/useStore';
 import TimelineClip from './TimelineClip';
 import TrimExportDialog from '../TrimExportDialog/TrimExportDialog';
 import './Timeline.css';
 
+// Track component with drop zone
+function Track({ trackId, clips, timelineClips, snapTime, updateTimelineClip, removeTimelineClip, setPlayhead, isPlaying, setIsPlaying, timelineDuration, label }) {
+  const [{ isOver }, drop] = useDrop({
+    accept: 'timeline-clip',
+    drop: (item, monitor) => {
+      const dropTargetRef = monitor.getDropResult();
+      const clientOffset = monitor.getClientOffset();
+      const trackElement = document.querySelector(`.timeline-track:nth-child(${trackId + 1}) .track-content`);
+
+      if (!trackElement || !clientOffset) return;
+
+      const rect = trackElement.getBoundingClientRect();
+      const x = clientOffset.x - rect.left;
+      const percent = (x / rect.width) * 100;
+      const newTime = Math.max(0, Math.min((percent / 100) * timelineDuration, timelineDuration));
+      const snappedTime = snapTime(newTime, item.clip.id);
+
+      // Update clip position and track
+      updateTimelineClip(item.clip.id, {
+        startTime: snappedTime,
+        trackId: trackId,
+      });
+
+      console.log('Repositioned clip to:', snappedTime, 'on track:', trackId);
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  });
+
+  const handleTrackClick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = (x / rect.width) * 100;
+    const newTime = Math.max(0, Math.min((percent / 100) * timelineDuration, timelineDuration));
+    setPlayhead(newTime);
+    console.log('Clicked timeline at:', newTime);
+
+    if (isPlaying) {
+      setIsPlaying(false);
+    }
+  };
+
+  const trackClips = timelineClips.filter(clip => clip.trackId === trackId);
+
+  return (
+    <div className="timeline-track">
+      {label && <div className="track-label">{label}</div>}
+      <div
+        ref={drop}
+        className={label ? "track-content" : "track-content track-content-no-label"}
+        onClick={handleTrackClick}
+        style={{ background: isOver ? 'rgba(59, 130, 246, 0.1)' : undefined }}
+      >
+        {trackClips.length === 0 ? (
+          <div className="empty-track">Drop clips here</div>
+        ) : (
+          trackClips.map(clip => {
+            const sourceClip = clips.find(c => c.id === clip.clipId);
+            return (
+              <TimelineClip
+                key={clip.id}
+                clip={clip}
+                sourceClip={sourceClip}
+                updateClip={updateTimelineClip}
+                onRemove={removeTimelineClip}
+                timelineDuration={timelineDuration}
+              />
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Timeline() {
   const { timelineClips, clips, playhead, isPlaying, setInPoint, setOutPoint, inPoint, outPoint, setIsPlaying, setPlayhead, addToTimeline, updateTimelineClip, currentClip, removeTimelineClip, splitTimelineClip } = useStore();
   const [showTrimDialog, setShowTrimDialog] = useState(false);
+  const [snapEnabled, setSnapEnabled] = useState(true);
+  const SNAP_THRESHOLD = 0.5; // 0.5 seconds snap threshold
+  const GRID_INTERVAL = 1; // 1 second grid intervals
+
+  // Snap time to grid or clip edges
+  const snapTime = (time, clipId = null) => {
+    if (!snapEnabled) return time;
+
+    // Snap to grid intervals
+    const gridSnap = Math.round(time / GRID_INTERVAL) * GRID_INTERVAL;
+    if (Math.abs(time - gridSnap) < SNAP_THRESHOLD) {
+      return gridSnap;
+    }
+
+    // Snap to other clip edges
+    for (const clip of timelineClips) {
+      if (clip.id === clipId) continue; // Don't snap to self
+
+      const clipStart = clip.startTime;
+      const clipEnd = clip.startTime + clip.duration;
+
+      if (Math.abs(time - clipStart) < SNAP_THRESHOLD) {
+        return clipStart;
+      }
+      if (Math.abs(time - clipEnd) < SNAP_THRESHOLD) {
+        return clipEnd;
+      }
+    }
+
+    return time;
+  };
 
   const [{ isOver }, drop] = useDrop({
-    accept: 'clip',
-    drop: (item) => {
+    accept: ['clip', 'timeline-clip'],
+    drop: (item, monitor) => {
+      const itemType = monitor.getItemType();
+
+      if (itemType === 'timeline-clip') {
+        // Repositioning existing timeline clip
+        console.log('Repositioning timeline clip:', item.clip);
+        // This will be handled by track drop zones
+        return;
+      }
+
+      // Adding new clip from library
       console.log('Dropped clip on timeline:', item.clip);
-      // Add clip to timeline at current playhead position
+      const snappedTime = snapTime(playhead);
       const timelineClip = {
         id: `timeline-${Date.now()}`,
         clipId: item.clip.id,
         trackId: 0, // Add to main track
-        startTime: playhead,
-        duration: item.clip.duration || 10, // Use actual duration if available
+        startTime: snappedTime,
+        duration: item.clip.duration || 10,
         trimStart: 0,
         trimEnd: 0,
       };
@@ -157,6 +274,17 @@ function Timeline() {
       <div className="timeline-header">
         <h2 className="section-title">Timeline</h2>
         <div className="timeline-controls">
+          <button
+            className={`control-button ${snapEnabled ? 'active' : ''}`}
+            onClick={() => setSnapEnabled(!snapEnabled)}
+            title={snapEnabled ? 'Snap: ON' : 'Snap: OFF'}
+            style={{
+              background: snapEnabled ? '#3b82f6' : undefined,
+              color: snapEnabled ? 'white' : undefined
+            }}
+          >
+            🧲
+          </button>
           <button className="control-button" title="Zoom Out">-</button>
           <span className="zoom-level">100%</span>
           <button className="control-button" title="Zoom In">+</button>
@@ -222,70 +350,36 @@ function Timeline() {
         <div className="timeline-tracks-wrapper">
           {/* Tracks */}
           <div className="timeline-tracks" ref={drop}>
-          {/* Track 1: Main Video */}
-          <div className="timeline-track">
-            <div 
-              className="track-content track-content-no-label"
-              onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const percent = (x / rect.width) * 100;
-                const newTime = Math.max(0, Math.min((percent / 100) * timelineDuration, timelineDuration));
-                setPlayhead(newTime);
-                console.log('Clicked timeline at:', newTime);
-                
-                // If video is playing, pause it when seeking
-                if (isPlaying) {
-                  setIsPlaying(false);
-                }
-              }}
-            >
-              {timelineClips.filter(clip => clip.trackId === 0).length === 0 ? (
-                <div className="empty-track">Drop clips here</div>
-              ) : (
-                timelineClips
-                  .filter(clip => clip.trackId === 0)
-                  .map(clip => {
-                    const sourceClip = clips.find(c => c.id === clip.clipId);
-                    return (
-                      <TimelineClip
-                        key={clip.id}
-                        clip={clip}
-                        sourceClip={sourceClip}
-                        updateClip={updateTimelineClip}
-                        onRemove={removeTimelineClip}
-                      />
-                    );
-                  })
-              )}
-            </div>
-          </div>
+            {/* Track 1: Main Video */}
+            <Track
+              trackId={0}
+              clips={clips}
+              timelineClips={timelineClips}
+              snapTime={snapTime}
+              updateTimelineClip={updateTimelineClip}
+              removeTimelineClip={removeTimelineClip}
+              setPlayhead={setPlayhead}
+              isPlaying={isPlaying}
+              setIsPlaying={setIsPlaying}
+              timelineDuration={timelineDuration}
+              label={null}
+            />
 
-          {/* Track 2: Overlay */}
-          <div className="timeline-track">
-            <div className="track-label">Track 2</div>
-            <div className="track-content">
-              {timelineClips.filter(clip => clip.trackId === 1).length === 0 ? (
-                <div className="empty-track">Drop overlays here</div>
-              ) : (
-                timelineClips
-                  .filter(clip => clip.trackId === 1)
-                  .map(clip => {
-                    const sourceClip = clips.find(c => c.id === clip.clipId);
-                    return (
-                      <TimelineClip
-                        key={clip.id}
-                        clip={clip}
-                        sourceClip={sourceClip}
-                        updateClip={updateTimelineClip}
-                        onRemove={removeTimelineClip}
-                      />
-                    );
-                  })
-              )}
-            </div>
+            {/* Track 2: Overlay */}
+            <Track
+              trackId={1}
+              clips={clips}
+              timelineClips={timelineClips}
+              snapTime={snapTime}
+              updateTimelineClip={updateTimelineClip}
+              removeTimelineClip={removeTimelineClip}
+              setPlayhead={setPlayhead}
+              isPlaying={isPlaying}
+              setIsPlaying={setIsPlaying}
+              timelineDuration={timelineDuration}
+              label="Track 2"
+            />
           </div>
-        </div>
         </div>
       </div>
 
