@@ -222,13 +222,50 @@ function VideoPlayer() {
     };
     
     const handleEnded = () => {
-      if (!isSyncingRef.current) setIsPlaying(false);
+      if (isSyncingRef.current) return;
+
+      // Check if there's a next clip on the timeline
+      const currentTimelineClip = timelineClips.find(tc => {
+        return playhead >= tc.startTime && playhead < (tc.startTime + tc.duration);
+      });
+
+      if (currentTimelineClip) {
+        // Move playhead to start of next clip
+        const nextClipStart = currentTimelineClip.startTime + currentTimelineClip.duration;
+
+        // Check if there's actually a clip at that position
+        const nextClip = timelineClips.find(tc => tc.startTime >= nextClipStart);
+
+        if (nextClip) {
+          // Continue playing into next clip
+          setPlayhead(nextClipStart);
+          // Keep playing
+        } else {
+          // No more clips, stop
+          setIsPlaying(false);
+        }
+      } else {
+        // No timeline clips, just stop
+        setIsPlaying(false);
+      }
     };
-    
+
     const handleTimeUpdate = () => {
       // Only update playhead if we're not currently seeking (to prevent feedback loop)
       if (!isSyncingRef.current) {
-        setPlayhead(video.currentTime);
+        // Find current timeline clip to convert video time to timeline time
+        const currentTimelineClip = timelineClips.find(tc => {
+          return playhead >= tc.startTime && playhead < (tc.startTime + tc.duration);
+        });
+
+        if (currentTimelineClip) {
+          // Convert video time to timeline time
+          const timelineTime = currentTimelineClip.startTime + video.currentTime;
+          setPlayhead(timelineTime);
+        } else {
+          // Fallback for single clip playback
+          setPlayhead(video.currentTime);
+        }
       }
     };
     
@@ -243,7 +280,7 @@ function VideoPlayer() {
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [setPlayhead, setIsPlaying]);
+  }, [setPlayhead, setIsPlaying, timelineClips, playhead]);
 
   // Always render video element
   return (
