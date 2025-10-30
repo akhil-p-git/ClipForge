@@ -130,17 +130,25 @@ function Timeline() {
 
       // Adding new clip from library
       console.log('Dropped clip on timeline:', item.clip);
-      const snappedTime = snapTime(playhead);
+
+      // Calculate the end of the last clip on the timeline
+      const lastClipEnd = timelineClips.reduce((maxEnd, clip) => {
+        return Math.max(maxEnd, clip.startTime + clip.duration);
+      }, 0);
+
+      // Place new clip at the end of the timeline
+      const startTime = lastClipEnd;
       const timelineClip = {
         id: `timeline-${Date.now()}`,
         clipId: item.clip.id,
         trackId: 0, // Add to main track
-        startTime: snappedTime,
+        startTime: startTime,
         duration: item.clip.duration || 10,
         trimStart: 0,
         trimEnd: 0,
       };
       addToTimeline(timelineClip);
+      console.log('Added clip at:', startTime);
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
