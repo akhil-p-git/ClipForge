@@ -56,6 +56,24 @@ brew install ffmpeg
 # Download from https://ffmpeg.org/download.html
 ```
 
+### Environment Setup (Optional)
+
+For AI transcription features, you'll need an OpenAI API key:
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` and add your OpenAI API key:
+   ```
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
+
+3. Get your API key from: https://platform.openai.com/api-keys
+
+**Note**: The `.env` file is git-ignored for security. Never commit API keys to version control.
+
 ### Running the App
 
 ```bash
