@@ -121,8 +121,18 @@ function MediaItem({ clip, onClick, isSelected = false, onRemove, onTranscribe }
     </div>
     
     <div className="media-item-actions">
+      <button
+        className="media-item-export"
+        onClick={(e) => {
+          e.stopPropagation();
+          window.showExportDialog?.();
+        }}
+        title="Export video"
+      >
+        ⬇️
+      </button>
       {onTranscribe && (
-        <button 
+        <button
           className="media-item-transcribe"
           onClick={handleTranscribe}
           title="Transcribe video"
@@ -131,7 +141,7 @@ function MediaItem({ clip, onClick, isSelected = false, onRemove, onTranscribe }
         </button>
       )}
       {onRemove && (
-        <button 
+        <button
           className="media-item-remove"
           onClick={handleRemove}
           title="Remove from library"

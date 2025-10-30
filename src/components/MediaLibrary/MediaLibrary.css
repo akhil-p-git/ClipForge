@@ -25,9 +25,9 @@
   background: #3b82f6;
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
@@ -41,9 +41,9 @@
   background: #10b981;
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
@@ -57,9 +57,9 @@
   background: #ef4444;
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
@@ -73,9 +73,9 @@
   background: #8b5cf6;
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s;
@@ -229,6 +229,7 @@
   opacity: 1;
 }
 
+.media-item-export,
 .media-item-transcribe,
 .media-item-remove {
   background: rgba(0, 0, 0, 0.7);
@@ -244,6 +245,11 @@
   align-items: center;
   justify-content: center;
   transition: opacity 0.2s, background 0.2s, transform 0.2s;
+}
+
+.media-item-export:hover {
+  background: rgba(16, 185, 129, 0.9);
+  transform: scale(1.1);
 }
 
 .media-item-transcribe:hover {
